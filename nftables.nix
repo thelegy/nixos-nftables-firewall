@@ -12,7 +12,7 @@ in
       default = ''
         table inet filter {
           chain input {
-            type filter hook input priority 0;
+            type filter hook input priority 0; policy drop
             iifname lo accept
             ct state {established, related} accept
             ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
@@ -20,6 +20,10 @@ in
             ip6 nexthdr icmpv6 icmpv6 type echo-request accept
             ip protocol icmp icmp type echo-request accept
             tcp dport 22 accept
+            counter drop
+          }
+          chain forward {
+            type filter hook forward priority 0; policy drop
             counter drop
           }
         }
