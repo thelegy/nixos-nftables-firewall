@@ -16,6 +16,14 @@ in {
           type = with types; listOf str;
           default = [];
         };
+        allowedTCPPorts = mkOption {
+          type = with types; listOf int;
+          default = [];
+        };
+        allowedUDPPorts = mkOption {
+          type = with types; listOf int;
+          default = [];
+        };
       };
       config = {
         name = mkDefault name;
@@ -41,13 +49,32 @@ in {
       onZoneIngress = zone: "iifname { ${concatStringsSep ", " zone.interfaces} }";
 
       zoneInputIngressChainName = zone: "nixos-firewall-input-${zone.name}-ingress";
+      zoneInputVmapTcpName = zone: "nixos-firewall-input-${zone.name}-tcp";
+      zoneInputVmapUdpName = zone: "nixos-firewall-input-${zone.name}-udp";
       zoneInputIngressRule = zone: "${onZoneIngress zone} counter jump ${zoneInputIngressChainName zone}\n";
       zoneInputIngressRules = pipe cfg.zones [ attrValues (concatMapStrings zoneInputIngressRule) ];
+      zoneInputMap = zone: ''
+        map ${zoneInputVmapTcpName zone} {
+          type inet_service : verdict
+          ${optionalString (length zone.allowedTCPPorts > 0) ''
+            elements = { ${pipe zone.allowedTCPPorts [ (map (x: "${toString x} : accept")) (concatStringsSep ", ") ]} }
+          ''}
+        }
+        map ${zoneInputVmapUdpName zone} {
+          type inet_service : verdict
+          ${optionalString (length zone.allowedUDPPorts > 0) ''
+            elements = { ${pipe zone.allowedUDPPorts [ (map (x: "${toString x} : accept")) (concatStringsSep ", ") ]} }
+          ''}
+        }
+      '';
       zoneInputIngressChain = zone: ''
         chain ${zoneInputIngressChainName zone} {
+          tcp dport vmap @${zoneInputVmapTcpName zone}
+          udp dport vmap @${zoneInputVmapUdpName zone}
           counter jump nixos-firewall-input-drop
         }
       '';
+      zoneInputMaps = pipe cfg.zones [ attrValues (concatMapStrings zoneInputMap) ];
       zoneInputIngressChains = pipe cfg.zones [ attrValues (concatMapStrings zoneInputIngressChain) ];
 
       zoneFwdIngressChainName = zone: "nixos-firewall-forward-${zone.name}-ingress";
@@ -71,7 +98,7 @@ in {
     in ''
       table inet filter {
         chain input {
-          type filter hook input priority 0;
+          type filter hook input priority 0; policy drop
           iifname lo accept
           ct state {established, related} accept
           ct state invalid drop
@@ -88,6 +115,7 @@ in {
         chain nixos-firewall-input-drop {
           counter jump nixos-firewall-drop
         }
+        ${zoneInputMaps}
         chain nixos-firewall-input-ingress {
           ${zoneInputIngressRules}
         }
