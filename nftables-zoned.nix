@@ -45,29 +45,24 @@ in {
     networking.nftables.ruleset = let
       perZone = perZoneString: pipe cfg.zones [ attrValues (concatMapStrings perZoneString) ];
 
-      cartesian = a: b: flatten (forEach a (aitem: forEach b (bitem: {fst=aitem; snd=bitem;})));
-      pairsOfZones = cartesian (attrValues cfg.zones) (attrValues cfg.zones);
+      toElementsSpec = listOfElements: optionalString (length listOfElements > 0) ''
+        elements = { ${concatStringsSep ", " listOfElements} }
+      '';
 
       onZoneIngress = zone: "iifname { ${concatStringsSep ", " zone.interfaces} }";
 
       zoneInputIngressChainName = zone: "nixos-firewall-input-${zone.name}-ingress";
       zoneInputVmapTcpName = zone: "nixos-firewall-input-${zone.name}-tcp";
       zoneInputVmapUdpName = zone: "nixos-firewall-input-${zone.name}-udp";
-      zoneInputIngressRules = perZone (zone: "${onZoneIngress zone} counter jump ${zoneInputIngressChainName zone}\n");
 
       zoneFwdIngressChainName = zone: "nixos-firewall-forward-${zone.name}-ingress";
       zoneFwdTraversalChainName = ingressZone: egressZone: "nixos-firewall-forward-${ingressZone.name}-to-${egressZone.name}";
+
       onZoneEgress = zone: "oifname { ${concatStringsSep ", " zone.interfaces} }";
-      zoneFwdIngressRules = perZone (zone: "${onZoneIngress zone} counter jump ${zoneFwdIngressChainName zone}\n");
-      zoneFwdTraversalRule = ingressZone: egressZone: "${onZoneEgress egressZone} jump ${zoneFwdTraversalChainName ingressZone egressZone}\n";
-      zoneFwdTraversalChain = ingressZone: egressZone: ''
-        chain ${zoneFwdTraversalChainName ingressZone egressZone} {
-          counter jump nixos-firewall-drop
-        }
-      '';
-      zoneFwdTraversalChains = concatMapStrings (x: zoneFwdTraversalChain x.fst x.snd) pairsOfZones;
+
     in ''
       table inet filter {
+
         chain input {
           type filter hook input priority 0; policy drop
           iifname lo accept
@@ -86,19 +81,52 @@ in {
         chain nixos-firewall-input-drop {
           counter jump nixos-firewall-drop
         }
-        ${zoneInputMaps}
+
+        ${perZone (zone: ''
+
+          map ${zoneInputVmapTcpName zone} {
+            type inet_service : verdict
+            ${pipe zone.allowedTCPPorts [ (map (x: "${toString x} : accept")) toElementsSpec ]}
+          }
+
+          map ${zoneInputVmapUdpName zone} {
+            type inet_service : verdict
+            ${pipe zone.allowedUDPPorts [ (map (x: "${toString x} : accept")) toElementsSpec ]}
+          }
+
+          chain ${zoneInputIngressChainName zone} {
+            tcp dport vmap @${zoneInputVmapTcpName zone}
+            udp dport vmap @${zoneInputVmapUdpName zone}
+            counter jump nixos-firewall-input-drop
+          }
+
+          chain ${zoneFwdIngressChainName zone} {
+            ${perZone (egressZone: ''
+              ${onZoneEgress egressZone} jump ${zoneFwdTraversalChainName zone egressZone}
+            '')}
+          }
+
+          ${perZone (egressZone: ''
+            chain ${zoneFwdTraversalChainName zone egressZone} {
+              counter jump nixos-firewall-drop
+            }
+          '')}
+
+        '')}
+
         chain nixos-firewall-input-ingress {
-          ${zoneInputIngressRules}
+          ${perZone (zone: ''
+            ${onZoneIngress zone} counter jump ${zoneInputIngressChainName zone}
+          '')}
         }
-        ${zoneInputIngressChains}
         chain nixos-firewall-forward-ingress {
           type filter hook forward priority 0; policy drop;
           counter
-          ${zoneFwdIngressRules}
+          ${perZone (zone: ''
+            ${onZoneIngress zone} counter jump ${zoneFwdIngressChainName zone}
+          '')}
           counter drop
         }
-        ${zoneFwdIngressChains}
-        ${zoneFwdTraversalChains}
       }
     '';
   };
