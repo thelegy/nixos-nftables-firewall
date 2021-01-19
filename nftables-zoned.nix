@@ -53,44 +53,13 @@ in {
       zoneInputIngressChainName = zone: "nixos-firewall-input-${zone.name}-ingress";
       zoneInputVmapTcpName = zone: "nixos-firewall-input-${zone.name}-tcp";
       zoneInputVmapUdpName = zone: "nixos-firewall-input-${zone.name}-udp";
-      zoneInputIngressRule = zone: "${onZoneIngress zone} counter jump ${zoneInputIngressChainName zone}\n";
-      zoneInputIngressRules = perZone zoneInputIngressRule;
-      zoneInputMap = zone: ''
-        map ${zoneInputVmapTcpName zone} {
-          type inet_service : verdict
-          ${optionalString (length zone.allowedTCPPorts > 0) ''
-            elements = { ${pipe zone.allowedTCPPorts [ (map (x: "${toString x} : accept")) (concatStringsSep ", ") ]} }
-          ''}
-        }
-        map ${zoneInputVmapUdpName zone} {
-          type inet_service : verdict
-          ${optionalString (length zone.allowedUDPPorts > 0) ''
-            elements = { ${pipe zone.allowedUDPPorts [ (map (x: "${toString x} : accept")) (concatStringsSep ", ") ]} }
-          ''}
-        }
-      '';
-      zoneInputIngressChain = zone: ''
-        chain ${zoneInputIngressChainName zone} {
-          tcp dport vmap @${zoneInputVmapTcpName zone}
-          udp dport vmap @${zoneInputVmapUdpName zone}
-          counter jump nixos-firewall-input-drop
-        }
-      '';
-      zoneInputMaps = perZone zoneInputMap;
-      zoneInputIngressChains = perZone zoneInputIngressChain;
+      zoneInputIngressRules = perZone (zone: "${onZoneIngress zone} counter jump ${zoneInputIngressChainName zone}\n");
 
       zoneFwdIngressChainName = zone: "nixos-firewall-forward-${zone.name}-ingress";
       zoneFwdTraversalChainName = ingressZone: egressZone: "nixos-firewall-forward-${ingressZone.name}-to-${egressZone.name}";
       onZoneEgress = zone: "oifname { ${concatStringsSep ", " zone.interfaces} }";
-      zoneFwdIngressRule = zone: "${onZoneIngress zone} counter jump ${zoneFwdIngressChainName zone}\n";
-      zoneFwdIngressRules = perZone zoneFwdIngressRule;
+      zoneFwdIngressRules = perZone (zone: "${onZoneIngress zone} counter jump ${zoneFwdIngressChainName zone}\n");
       zoneFwdTraversalRule = ingressZone: egressZone: "${onZoneEgress egressZone} jump ${zoneFwdTraversalChainName ingressZone egressZone}\n";
-      zoneFwdIngressChain = zone: ''
-        chain ${zoneFwdIngressChainName zone} {
-          ${perZone (zoneFwdTraversalRule zone)}
-        }
-      '';
-      zoneFwdIngressChains = perZone zoneFwdIngressChain;
       zoneFwdTraversalChain = ingressZone: egressZone: ''
         chain ${zoneFwdTraversalChainName ingressZone egressZone} {
           counter jump nixos-firewall-drop
