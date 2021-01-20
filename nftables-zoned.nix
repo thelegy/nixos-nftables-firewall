@@ -3,14 +3,39 @@ with lib;
 
 let
   cfg = config.networking.nftables.firewall;
+
+  defaultZoneTraversalPolicy = "jump nixos-firewall-forward-drop";
 in {
 
   options = let
+
+    perZoneTraversalConfig = { name, ... }: {
+      options = {
+        name = mkOption {
+          type = types.str;
+        };
+        policy = mkOption {
+          type = types.str;
+          default = defaultZoneTraversalPolicy;
+        };
+        masquerade = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+      config = {
+        name = mkDefault name;
+      };
+    };
 
     perZoneConfig = { name, ... }: {
       options = {
         name = mkOption {
           type = types.str;
+        };
+        to = mkOption {
+          type = with types; loaOf (submodule perZoneTraversalConfig);
+          default = {};
         };
         interfaces = mkOption {
           type = with types; listOf str;
@@ -41,8 +66,17 @@ in {
   };
 
   config = mkIf cfg.enable {
+    assertions = flatten (forEach (attrValues cfg.zones) (zone:
+      forEach (attrValues zone.to) (toZone:
+        {
+          assertion = builtins.elem toZone.name (map (zone: zone.name) (attrValues cfg.zones));
+          message = "Can only define target zones, for zones, that are defined.";
+        }
+      )
+    ));
     networking.nftables.enable = true;
     networking.nftables.ruleset = let
+
       perZone = perZoneString: pipe cfg.zones [ attrValues (concatMapStrings perZoneString) ];
 
       toElementsSpec = listOfElements: optionalString (length listOfElements > 0) ''
@@ -50,6 +84,7 @@ in {
       '';
 
       onZoneIngress = zone: "iifname { ${concatStringsSep ", " zone.interfaces} }";
+      onZoneEgress = zone: "oifname { ${concatStringsSep ", " zone.interfaces} }";
 
       zoneInputIngressChainName = zone: "nixos-firewall-input-${zone.name}-ingress";
       zoneInputVmapTcpName = zone: "nixos-firewall-input-${zone.name}-tcp";
@@ -58,7 +93,6 @@ in {
       zoneFwdIngressChainName = zone: "nixos-firewall-forward-${zone.name}-ingress";
       zoneFwdTraversalChainName = ingressZone: egressZone: "nixos-firewall-forward-${ingressZone.name}-to-${egressZone.name}";
 
-      onZoneEgress = zone: "oifname { ${concatStringsSep ", " zone.interfaces} }";
 
     in ''
       table inet filter {
@@ -79,6 +113,9 @@ in {
           counter drop
         }
         chain nixos-firewall-input-drop {
+          counter jump nixos-firewall-drop
+        }
+        chain nixos-firewall-forward-drop {
           counter jump nixos-firewall-drop
         }
 
@@ -108,7 +145,7 @@ in {
 
           ${perZone (egressZone: ''
             chain ${zoneFwdTraversalChainName zone egressZone} {
-              counter jump nixos-firewall-drop
+              ${zone.to."${egressZone.name}".policy or defaultZoneTraversalPolicy}
             }
           '')}
 
@@ -122,10 +159,27 @@ in {
         chain nixos-firewall-forward-ingress {
           type filter hook forward priority 0; policy drop;
           counter
+          ct state {established, related} accept
+          ct state invalid drop
+          counter
           ${perZone (zone: ''
             ${onZoneIngress zone} counter jump ${zoneFwdIngressChainName zone}
           '')}
-          counter drop
+          counter jump nixos-firewall-forward-drop
+        }
+      }
+      table ip nat {
+        chain nixos-firewall-dnat {
+          type nat hook prerouting priority -100;
+          meta nftrace set 1
+        }
+        chain nixos-firewall-snat {
+          type nat hook postrouting priority 100;
+          ${perZone (ingressZone: ''
+            ${perZone (egressZone: ''
+              ${optionalString (ingressZone.to."${egressZone.name}".masquerade or false) "${onZoneIngress ingressZone} ${onZoneEgress egressZone} masquerade random"}
+            '')}
+          '')}
         }
       }
     '';
