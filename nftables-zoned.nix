@@ -3,7 +3,7 @@ with lib;
 
 let
 
-  toPortList = ports: assert (length ports > 0); "{ ${concatStringsSep ", " (map toString ports)} }";
+  toPortList = ports: assert length ports > 0; "{ ${concatStringsSep ", " (map toString ports)} }";
 
   cfg = config.networking.nftables.firewall;
 
@@ -31,6 +31,9 @@ let
         (filter (x: x.value.name == zone.name))
         (map (x: x.value // {name=x.from;}))
       ];
+      hasExpressions = length zone.interfaces > 0;
+      ingressExpression = assert hasExpressions; "iifname { ${concatStringsSep ", " zone.interfaces} }";
+      egressExpression = assert hasExpressions; "oifname { ${concatStringsSep ", " zone.interfaces} }";
     };
   }));
 
@@ -119,15 +122,13 @@ in {
     networking.nftables.enable = true;
     networking.nftables.ruleset = let
 
-      perZone = perZoneString: concatMapStrings perZoneString (attrValues zones);
-      perForwardZone = perZoneString: concatMapStrings perZoneString (filter (x: length x.interfaces > 0) (attrValues zones));
+      perZoneF = f: perZoneString: pipe zones [ attrValues (filter f) (concatMapStrings perZoneString) ];
+      perZone = perZoneF (x: true);
+      perForwardZone = perZoneF (x: x.hasExpressions);
 
       toElementsSpec = listOfElements: optionalString (length listOfElements > 0) ''
         elements = { ${concatStringsSep ", " listOfElements} }
       '';
-
-      onZoneIngress = zone: "iifname { ${concatStringsSep ", " zone.interfaces} }";
-      onZoneEgress = zone: "oifname { ${concatStringsSep ", " zone.interfaces} }";
 
       zoneInputIngressChainName = zone: "nixos-firewall-input-${zone.name}-ingress";
       zoneInputVmapTcpName = zone: "nixos-firewall-input-${zone.name}-tcp";
@@ -176,14 +177,14 @@ in {
         ${perForwardZone (zone: ''
           chain ${zoneFwdIngressChainName zone} {
             ${concatMapStrings (to: optionalString (length zones."${to.name}".interfaces > 0) ''
-              ${onZoneEgress zones."${to.name}"} ${to.entryStatement}
+              ${zones."${to.name}".egressExpression} ${to.entryStatement}
             '') zone.to}
           }
         '')}
 
         chain nixos-firewall-input-ingress {
           ${concatMapStrings (from: optionalString (length zones."${from.name}".interfaces > 0) ''
-            ${onZoneIngress zones."${from.name}"} ${from.entryStatement}
+            ${zones."${from.name}".ingressExpression} ${from.entryStatement}
           '') localZone.from}
         }
 
@@ -192,7 +193,7 @@ in {
           ct state {established, related} accept
           ct state invalid drop
           ${perForwardZone (zone: ''
-            ${onZoneIngress zone} counter jump ${zoneFwdIngressChainName zone}
+            ${zone.ingressExpression} counter jump ${zoneFwdIngressChainName zone}
           '')}
           counter jump nixos-firewall-forward-drop
         }
@@ -204,7 +205,7 @@ in {
         chain nixos-firewall-snat {
           type nat hook postrouting priority srcnat;
           ${perForwardZone (ingressZone: concatMapStrings (to: ''
-            ${onZoneIngress ingressZone} ${onZoneEgress zones."${to.name}"} masquerade random
+            ${ingressZone.ingressExpression} ${zones."${to.name}".egressExpression} masquerade random
           '') (filter (x: x.masquerade) ingressZone.to))}
         }
 
