@@ -9,19 +9,34 @@ let
 
   traversalChainName = from: to: "nixos-firewall-from-${from}-to-${to}";
 
+  concatNonEmptyStringsSep = sep: strings: pipe strings [
+    (filter (x: x != null))
+    (filter (x: stringLength x > 0))
+    (concatStringsSep sep)
+  ];
+
   zones = listToAttrs (forEach (attrValues cfg.zones) (zone: {
     name = zone.name;
-    value = zone // rec {
+    value = let
+      ingressExpressionRaw = concatNonEmptyStringsSep " " [
+        (optionalString (length zone.interfaces > 0) "iifname { ${concatStringsSep ", " zone.interfaces} }")
+        zone.ingressExpression
+      ];
+      egressExpressionRaw = concatNonEmptyStringsSep " " [
+        (optionalString (length zone.interfaces > 0) "oifname { ${concatStringsSep ", " zone.interfaces} }")
+        zone.egressExpression
+      ];
+    in zone // rec {
       to = map (x: x // rec {
         entryStatement = if canInlineChain then
           (if rules == [] then "continue" else head rules)
         else
           "jump ${traversalChainName zone.name x.name}";
-        rules = (optionals (length x.allowedUDPPorts > 0) [
-          "udp dport ${toPortList x.allowedUDPPorts} counter accept"
-        ]) ++ (optionals (length x.allowedTCPPorts > 0) [
-          "tcp dport ${toPortList x.allowedTCPPorts} counter accept"
-        ]) ++ (optionals (x.policy != null) [ x.policy ]);
+        rules = concatLists [
+          (optional (length x.allowedUDPPorts > 0) "udp dport ${toPortList x.allowedUDPPorts} counter accept" )
+          (optional (length x.allowedTCPPorts > 0) "tcp dport ${toPortList x.allowedTCPPorts} counter accept")
+          (optional (x.policy != null) x.policy)
+        ];
         canInlineChain = length rules <= 1;
       }) (attrValues zone.to);
       from = pipe zones [
@@ -31,9 +46,9 @@ let
         (filter (x: x.value.name == zone.name))
         (map (x: x.value // {name=x.from;}))
       ];
-      hasExpressions = length zone.interfaces > 0;
-      ingressExpression = assert hasExpressions; "iifname { ${concatStringsSep ", " zone.interfaces} }";
-      egressExpression = assert hasExpressions; "oifname { ${concatStringsSep ", " zone.interfaces} }";
+      hasExpressions = (stringLength ingressExpressionRaw > 0) && (stringLength egressExpressionRaw > 0);
+      ingressExpression = assert hasExpressions; ingressExpressionRaw;
+      egressExpression = assert hasExpressions; egressExpressionRaw;
     };
   }));
 
@@ -88,6 +103,14 @@ in {
         interfaces = mkOption {
           type = with types; listOf str;
           default = [];
+        };
+        ingressExpression = mkOption {
+          type = with types; nullOr str;
+          default = null;
+        };
+        egressExpression = mkOption {
+          type = with types; nullOr str;
+          default = null;
         };
       };
       config = {
