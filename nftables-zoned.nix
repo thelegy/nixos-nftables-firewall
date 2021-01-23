@@ -2,9 +2,42 @@
 with lib;
 
 let
+
+  toPortList = ports: assert (length ports > 0); "{ ${concatStringsSep ", " (map toString ports)} }";
+
   cfg = config.networking.nftables.firewall;
 
+  traversalChainName = from: to: "nixos-firewall-from-${from}-to-${to}";
+
+  zones = listToAttrs (forEach (attrValues cfg.zones) (zone: {
+    name = zone.name;
+    value = zone // rec {
+      to = map (x: x // rec {
+        entryStatement = if canInlineChain then
+          (if rules == [] then "continue" else head rules)
+        else
+          "jump ${traversalChainName zone.name x.name}";
+        rules = (optionals (length x.allowedUDPPorts > 0) [
+          "udp dport ${toPortList x.allowedUDPPorts} counter accept"
+        ]) ++ (optionals (length x.allowedTCPPorts > 0) [
+          "tcp dport ${toPortList x.allowedTCPPorts} counter accept"
+        ]) ++ (optionals (x.policy != null) [ x.policy ]);
+        canInlineChain = length rules <= 1;
+      }) (attrValues zone.to);
+      from = pipe zones [
+        attrValues
+        (map (z: forEach z.to (t: {from = z.name; value = t;})))
+        flatten
+        (filter (x: x.value.name == zone.name))
+        (map (x: x.value // {name=x.from;}))
+      ];
+    };
+  }));
+
+  localZone = head (filter (x: x.localZone) (attrValues zones));
+
   defaultZoneTraversalPolicy = "jump nixos-firewall-forward-drop";
+
 in {
 
   options = let
@@ -15,12 +48,20 @@ in {
           type = types.str;
         };
         policy = mkOption {
-          type = types.str;
+          type = with types; nullOr str;
           default = defaultZoneTraversalPolicy;
         };
         masquerade = mkOption {
           type = types.bool;
           default = false;
+        };
+        allowedTCPPorts = mkOption {
+          type = with types; listOf int;
+          default = [];
+        };
+        allowedUDPPorts = mkOption {
+          type = with types; listOf int;
+          default = [];
         };
       };
       config = {
@@ -33,20 +74,16 @@ in {
         name = mkOption {
           type = types.str;
         };
+        localZone = mkOption {
+          type = types.bool;
+          default = false;
+        };
         to = mkOption {
           type = with types; loaOf (submodule perZoneTraversalConfig);
           default = {};
         };
         interfaces = mkOption {
           type = with types; listOf str;
-          default = [];
-        };
-        allowedTCPPorts = mkOption {
-          type = with types; listOf int;
-          default = [];
-        };
-        allowedUDPPorts = mkOption {
-          type = with types; listOf int;
           default = [];
         };
       };
@@ -66,18 +103,24 @@ in {
   };
 
   config = mkIf cfg.enable {
-    assertions = flatten (forEach (attrValues cfg.zones) (zone:
-      forEach (attrValues zone.to) (toZone:
+    assertions = flatten (forEach (attrValues zones) (zone:
+      forEach zone.to (toZone:
         {
-          assertion = builtins.elem toZone.name (map (zone: zone.name) (attrValues cfg.zones));
+          assertion = elem toZone.name (map (zone: zone.name) (attrValues zones));
           message = "Can only define target zones, for zones, that are defined.";
         }
       )
-    ));
+    )) ++ [
+      {
+        assertion = (count (x: x.localZone) (attrValues zones)) == 1;
+        message = "There needs to exist exactly one localZone.";
+      }
+    ];
     networking.nftables.enable = true;
     networking.nftables.ruleset = let
 
-      perZone = perZoneString: pipe cfg.zones [ attrValues (concatMapStrings perZoneString) ];
+      perZone = perZoneString: concatMapStrings perZoneString (attrValues zones);
+      perForwardZone = perZoneString: concatMapStrings perZoneString (filter (x: length x.interfaces > 0) (attrValues zones));
 
       toElementsSpec = listOfElements: optionalString (length listOfElements > 0) ''
         elements = { ${concatStringsSep ", " listOfElements} }
@@ -108,6 +151,7 @@ in {
           ip protocol icmp icmp type echo-request accept
           tcp dport 22 accept
           counter jump nixos-firewall-input-ingress
+          counter jump nixos-firewall-forward-drop
         }
         chain nixos-firewall-drop {
           counter drop
@@ -121,66 +165,49 @@ in {
 
         ${perZone (zone: ''
 
-          map ${zoneInputVmapTcpName zone} {
-            type inet_service : verdict
-            ${pipe zone.allowedTCPPorts [ (map (x: "${toString x} : accept")) toElementsSpec ]}
-          }
-
-          map ${zoneInputVmapUdpName zone} {
-            type inet_service : verdict
-            ${pipe zone.allowedUDPPorts [ (map (x: "${toString x} : accept")) toElementsSpec ]}
-          }
-
-          chain ${zoneInputIngressChainName zone} {
-            tcp dport vmap @${zoneInputVmapTcpName zone}
-            udp dport vmap @${zoneInputVmapUdpName zone}
-            counter jump nixos-firewall-input-drop
-          }
-
-          chain ${zoneFwdIngressChainName zone} {
-            ${perZone (egressZone: ''
-              ${onZoneEgress egressZone} jump ${zoneFwdTraversalChainName zone egressZone}
-            '')}
-          }
-
-          ${perZone (egressZone: ''
-            chain ${zoneFwdTraversalChainName zone egressZone} {
-              ${zone.to."${egressZone.name}".policy or defaultZoneTraversalPolicy}
+          ${concatMapStrings (to: ''
+            chain ${traversalChainName zone.name to.name} {
+              ${concatStringsSep "\n" to.rules}
             }
-          '')}
+          '') (filter (x: ! x.canInlineChain) zone.to)}
 
         '')}
 
+        ${perForwardZone (zone: ''
+          chain ${zoneFwdIngressChainName zone} {
+            ${concatMapStrings (to: optionalString (length zones."${to.name}".interfaces > 0) ''
+              ${onZoneEgress zones."${to.name}"} ${to.entryStatement}
+            '') zone.to}
+          }
+        '')}
+
         chain nixos-firewall-input-ingress {
-          ${perZone (zone: ''
-            ${onZoneIngress zone} counter jump ${zoneInputIngressChainName zone}
-          '')}
+          ${concatMapStrings (from: optionalString (length zones."${from.name}".interfaces > 0) ''
+            ${onZoneIngress zones."${from.name}"} ${from.entryStatement}
+          '') localZone.from}
         }
+
         chain nixos-firewall-forward-ingress {
           type filter hook forward priority 0; policy drop;
-          counter
           ct state {established, related} accept
           ct state invalid drop
-          counter
-          ${perZone (zone: ''
+          ${perForwardZone (zone: ''
             ${onZoneIngress zone} counter jump ${zoneFwdIngressChainName zone}
           '')}
           counter jump nixos-firewall-forward-drop
         }
-      }
-      table ip nat {
+
         chain nixos-firewall-dnat {
-          type nat hook prerouting priority -100;
-          meta nftrace set 1
+          type nat hook prerouting priority dstnat;
         }
+
         chain nixos-firewall-snat {
-          type nat hook postrouting priority 100;
-          ${perZone (ingressZone: ''
-            ${perZone (egressZone: ''
-              ${optionalString (ingressZone.to."${egressZone.name}".masquerade or false) "${onZoneIngress ingressZone} ${onZoneEgress egressZone} masquerade random"}
-            '')}
-          '')}
+          type nat hook postrouting priority srcnat;
+          ${perForwardZone (ingressZone: concatMapStrings (to: ''
+            ${onZoneIngress ingressZone} ${onZoneEgress zones."${to.name}"} masquerade random
+          '') (filter (x: x.masquerade) ingressZone.to))}
         }
+
       }
     '';
   };
