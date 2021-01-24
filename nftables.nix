@@ -9,25 +9,6 @@ in
   options = {
     networking.nftables.stopRuleset = mkOption {
       type = types.lines;
-      default = ''
-        table inet filter {
-          chain input {
-            type filter hook input priority 0; policy drop
-            iifname lo accept
-            ct state {established, related} accept
-            ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
-            ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept
-            ip6 nexthdr icmpv6 icmpv6 type echo-request accept
-            ip protocol icmp icmp type echo-request accept
-            tcp dport 22 accept
-            counter drop
-          }
-          chain forward {
-            type filter hook forward priority 0; policy drop
-            counter drop
-          }
-        }
-      '';
       example = ''
         # Check out https://wiki.nftables.org/ for better documentation.
         # Table for both IPv4 and IPv6.
