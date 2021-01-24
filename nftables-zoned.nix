@@ -54,7 +54,7 @@ let
 
   localZone = head (filter (x: x.localZone) (attrValues zones));
 
-  defaultZoneTraversalPolicy = "jump nixos-firewall-forward-drop";
+  defaultZoneTraversalPolicy = "counter drop";
 
 in {
 
@@ -149,10 +149,6 @@ in {
       perZone = perZoneF (x: true);
       perForwardZone = perZoneF (x: x.hasExpressions);
 
-      toElementsSpec = listOfElements: optionalString (length listOfElements > 0) ''
-        elements = { ${concatStringsSep ", " listOfElements} }
-      '';
-
       zoneInputIngressChainName = zone: "nixos-firewall-input-${zone.name}-ingress";
       zoneInputVmapTcpName = zone: "nixos-firewall-input-${zone.name}-tcp";
       zoneInputVmapUdpName = zone: "nixos-firewall-input-${zone.name}-udp";
@@ -174,17 +170,8 @@ in {
           ip6 nexthdr icmpv6 icmpv6 type echo-request accept
           ip protocol icmp icmp type echo-request accept
           tcp dport 22 accept
-          counter jump nixos-firewall-input-ingress
-          counter jump nixos-firewall-forward-drop
-        }
-        chain nixos-firewall-drop {
+          jump nixos-firewall-input-ingress
           counter drop
-        }
-        chain nixos-firewall-input-drop {
-          counter jump nixos-firewall-drop
-        }
-        chain nixos-firewall-forward-drop {
-          counter jump nixos-firewall-drop
         }
 
         ${perZone (zone: ''
@@ -218,7 +205,7 @@ in {
           ${perForwardZone (zone: ''
             ${zone.ingressExpression} counter jump ${zoneFwdIngressChainName zone}
           '')}
-          counter jump nixos-firewall-forward-drop
+          counter drop
         }
 
         chain nixos-firewall-dnat {
