@@ -150,8 +150,6 @@ in {
       perForwardZone = perZoneF (x: x.hasExpressions);
 
       zoneInputIngressChainName = zone: "nixos-firewall-input-${zone.name}-ingress";
-      zoneInputVmapTcpName = zone: "nixos-firewall-input-${zone.name}-tcp";
-      zoneInputVmapUdpName = zone: "nixos-firewall-input-${zone.name}-udp";
 
       zoneFwdIngressChainName = zone: "nixos-firewall-forward-${zone.name}-ingress";
       zoneFwdTraversalChainName = ingressZone: egressZone: "nixos-firewall-forward-${ingressZone.name}-to-${egressZone.name}";
