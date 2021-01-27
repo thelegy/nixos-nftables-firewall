@@ -185,8 +185,8 @@ in {
           value = let
             traversal = head ((filter (x: x.name == toZone.name) fromZone.to) ++ [{}]);
           in [
-            (forEach (traversal.allowedTCPPorts or []) (port: "tcp dport ${toString port} accept"))
-            (forEach (traversal.allowedUDPPorts or []) (port: "udp dport ${toString port} accept"))
+            (let ports=traversal.allowedTCPPorts or []; in if (ports!=[]) then "tcp dport ${toPortList ports} accept" else "")
+            (let ports=traversal.allowedUDPPorts or []; in if (ports!=[]) then "udp dport ${toPortList ports} accept" else "")
             (if (traversal.policy or null) != null then traversal.policy else "")
           ];
         })))
