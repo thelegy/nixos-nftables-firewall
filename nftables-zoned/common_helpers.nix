@@ -27,6 +27,8 @@
       }
     '';
     findDeps = names: if length names < 1 then [] else names ++ findDeps (flatten (map (name: concatMap (l: l.chainDeps or []) chains."${name}") names));
-  in pipe chainNames [ findDeps  unique (concatMapStrings renderChain) ];
+  in pipe chainNames [ findDeps unique (map renderChain) (concatStringsSep "\n") ];
+
+  prefixEachLine = prefix: flip pipe [ (splitString "\n") (map (line: "${prefix}${line}")) (concatStringsSep "\n") ];
 
 }

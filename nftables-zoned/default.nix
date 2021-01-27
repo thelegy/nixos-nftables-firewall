@@ -213,7 +213,12 @@ in {
         "nixos-firewall-snat"
       ];
 
-    in "table inet filter {${"\n"+renderChains chains baseChains}}";
+    in traceVal ''
+      table inet filter {
+
+      ${prefixEachLine "  " (renderChains chains baseChains)}
+      }
+    '';
   };
 
 }
