@@ -10,6 +10,8 @@ let
 
   traversalChainName = from: to: "nixos-firewall-from-${from}-to-${to}";
 
+  zoneFwdIngressChainName = from: "nixos-firewall-forward-${from}-ingress";
+
   concatNonEmptyStringsSep = sep: strings: pipe strings [
     (filter (x: x != null))
     (filter (x: stringLength x > 0))
@@ -43,6 +45,8 @@ let
   }));
 
   localZone = head (filter (x: x.localZone) (attrValues zones));
+
+  perZone = filterFunc: pipe zones [ attrValues (filter filterFunc) forEach ];
 
 in {
 
@@ -133,11 +137,6 @@ in {
     networking.nftables.enable = true;
     networking.nftables.ruleset = let
 
-      zoneInputIngressChainName = zone: "nixos-firewall-input-${zone.name}-ingress";
-
-      zoneFwdIngressChainName = zone: "nixos-firewall-forward-${zone.name}-ingress";
-      zoneFwdTraversalChainName = ingressZone: egressZone: "nixos-firewall-forward-${ingressZone.name}-to-${egressZone.name}";
-
       chains = {
 
         input = [''
@@ -150,7 +149,7 @@ in {
           ip6 nexthdr icmpv6 icmpv6 type echo-request accept
           ip protocol icmp icmp type echo-request accept
           tcp dport 22 accept''
-          (forEach localZone.from (from: {
+          (forEach (filter (x: zones."${x.name}".hasExpressions) localZone.from) (from: {
             onExpression = zones."${from.name}".ingressExpression;
             jump = traversalChainName from.name localZone.name;
           }))
@@ -170,9 +169,9 @@ in {
           type filter hook forward priority 0; policy drop;
           ct state {established, related} accept
           ct state invalid drop''
-          (forEach (filter (zone: length zone.interfaces > 0 && zone.parent == null) (attrValues zones)) (zone: {
+          (perZone (x: x.hasExpressions && x.parent == null) (zone: {
             onExpression = zone.ingressExpression;
-            jump = zoneFwdIngressChainName zone;
+            jump = zoneFwdIngressChainName zone.name;
           }))
           "counter drop"
         ];
@@ -180,7 +179,7 @@ in {
       } // listToAttrs ( flatten [
 
         # nixos-firewall-from-<fromZone>-ingress
-        (forEach (attrValues zones) (fromZone: forEach (attrValues zones) (toZone: {
+        (perZone (_: true) (fromZone: perZone (_: true) (toZone: {
           name = traversalChainName fromZone.name toZone.name;
           value = let
             traversal = head ((filter (x: x.name == toZone.name) fromZone.to) ++ [{}]);
@@ -192,10 +191,10 @@ in {
         })))
 
         # nixos-firewall-from-<fromZone>-to-<toZone>
-        (forEach (attrValues zones) (fromZone: {
-          name = zoneFwdIngressChainName fromZone;
+        (perZone (_: true) (fromZone: {
+          name = zoneFwdIngressChainName fromZone.name;
           value = [
-            (forEach (filter (x: x.hasExpressions) (attrValues zones)) (toZone: let
+            (perZone (x: x.hasExpressions) (toZone: let
               traversal = head ((filter (x: x.name == toZone.name) fromZone.to) ++ [{}]);
             in {
               onExpression = toZone.egressExpression;
