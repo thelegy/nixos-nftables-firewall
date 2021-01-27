@@ -30,6 +30,7 @@ let
         zone.egressExpression
       ];
     in zone // rec {
+      parent = null;
       toTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${zone.name}".to."${t.name}" or {}));
       to = pipe toTraversals [ (map (x: {name=x.to;value=x;})) listToAttrs ];
       fromTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${t.name}".to."${zone.name}" or {}));
