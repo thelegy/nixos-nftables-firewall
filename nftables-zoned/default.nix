@@ -30,14 +30,10 @@ let
         zone.egressExpression
       ];
     in zone // rec {
-      to = attrValues zone.to;
-      from = pipe zones [
-        attrValues
-        (map (z: forEach z.to (t: {from = z.name; value = t;})))
-        flatten
-        (filter (x: x.value.name == zone.name))
-        (map (x: x.value // {name=x.from;}))
-      ];
+      toTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${zone.name}".to."${t.name}" or {}));
+      to = pipe toTraversals [ (map (x: {name=x.to;value=x;})) listToAttrs ];
+      fromTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${t.name}".to."${zone.name}" or {}));
+      from = pipe fromTraversals [ (map (x: {name=x.from;value=x;})) listToAttrs ];
       hasExpressions = (stringLength ingressExpressionRaw > 0) && (stringLength egressExpressionRaw > 0);
       ingressExpression = assert hasExpressions; ingressExpressionRaw;
       egressExpression = assert hasExpressions; egressExpressionRaw;
@@ -46,15 +42,28 @@ let
 
   localZone = head (filter (x: x.localZone) (attrValues zones));
 
+  traversals = let
+    rawTraversals = pipe cfg.from [ attrValues (map (x: attrValues x.to)) flatten ];
+  in foldl' recursiveUpdate {} (forEach rawTraversals (traversal: {
+    "${traversal.from}".to."${traversal.to}" = traversal // rec {
+      fromZone = zones."${traversal.from}";
+      toZone = zones."${traversal.to}";
+    };
+  }));
+
   perZone = filterFunc: pipe zones [ attrValues (filter filterFunc) forEach ];
+  perTraversal = filterFunc: pipe traversals [ attrValues (map (x: attrValues x.to)) flatten (filter filterFunc) forEach ];
 
 in {
 
   options = let
 
-    perZoneTraversalConfig = { name, ... }: {
+    perTraversalToConfig = from: { name, ... }: {
       options = {
-        name = mkOption {
+        from = mkOption {
+          type = types.str;
+        };
+        to = mkOption {
           type = types.str;
         };
         policy = mkOption {
@@ -75,7 +84,15 @@ in {
         };
       };
       config = {
-        name = mkDefault name;
+        from = mkDefault from;
+        to = mkDefault name;
+      };
+    };
+
+    perTraversalFromConfig = { name, ... }: {
+      options.to = mkOption {
+        type = with types; loaOf (submodule (perTraversalToConfig name));
+        default = {};
       };
     };
 
@@ -87,10 +104,6 @@ in {
         localZone = mkOption {
           type = types.bool;
           default = false;
-        };
-        to = mkOption {
-          type = with types; loaOf (submodule perZoneTraversalConfig);
-          default = {};
         };
         interfaces = mkOption {
           type = with types; listOf str;
@@ -118,17 +131,21 @@ in {
       type = with types; loaOf (submodule perZoneConfig);
       default = {};
     };
+    networking.nftables.firewall.from = mkOption {
+      type = with types; loaOf (submodule perTraversalFromConfig);
+      default = {};
+    };
   };
 
   config = mkIf cfg.enable {
-    assertions = flatten (forEach (attrValues zones) (zone:
-      forEach zone.to (toZone:
-        {
-          assertion = elem toZone.name (map (zone: zone.name) (attrValues zones));
-          message = "Can only define target zones, for zones, that are defined.";
-        }
-      )
-    )) ++ [
+    assertions = flatten [
+      (perTraversal (_: true) (traversal: rec {
+        existingZoneNames = perZone (_: true) (zone: zone.name);
+        fromZoneExists = elem traversal.from existingZoneNames;
+        toZoneExists = elem traversal.to existingZoneNames;
+        assertion = fromZoneExists && toZoneExists;
+        message = "Can only define traversals between zones that are defined";
+      }))
       {
         assertion = (count (x: x.localZone) (attrValues zones)) == 1;
         message = "There needs to exist exactly one localZone.";
@@ -149,9 +166,9 @@ in {
           ip6 nexthdr icmpv6 icmpv6 type echo-request accept
           ip protocol icmp icmp type echo-request accept
           tcp dport 22 accept''
-          (forEach (filter (x: zones."${x.name}".hasExpressions) localZone.from) (from: {
-            onExpression = zones."${from.name}".ingressExpression;
-            jump = traversalChainName from.name localZone.name;
+          (forEach (filter (x: x.fromZone.hasExpressions) localZone.fromTraversals) (traversal: {
+            onExpression = traversal.fromZone.ingressExpression;
+            jump = traversalChainName traversal.from traversal.to;
           }))
           "counter drop"
         ];
@@ -160,10 +177,9 @@ in {
 
         nixos-firewall-snat = [
           "type nat hook postrouting priority srcnat;"
-          (perZone (x: x.hasExpressions && x.parent == null) (fromZone:
-            (forEach (filter (y: zones."${y.name}".hasExpressions && y.masquerade) fromZone.to) (to:
-              "${fromZone.ingressExpression} ${zones."${to.name}".egressExpression} masquerade random"
-          ))))
+          (perTraversal (x: x.fromZone.hasExpressions && x.fromZone.parent==null && x.toZone.hasExpressions && x.masquerade) (traversal:
+            "${traversal.fromZone.ingressExpression} ${traversal.toZone.egressExpression} masquerade random"
+          ))
         ];
 
         nixos-firewall-forward = [ ''
@@ -179,29 +195,24 @@ in {
 
       } // listToAttrs ( flatten [
 
-        # nixos-firewall-from-<fromZone>-ingress
-        (perZone (_: true) (fromZone: perZone (_: true) (toZone: {
+        # nixos-firewall-from-<fromZone>-to-<toZone>
+        (perZone (_: true) (fromZone: perZone (_: true) (toZone: rec {
+          traversal = fromZone.to."${toZone.name}" or {};
           name = traversalChainName fromZone.name toZone.name;
-          value = let
-            traversal = head ((filter (x: x.name == toZone.name) fromZone.to) ++ [{}]);
-          in [
+          value = [
             (let ports=traversal.allowedTCPPorts or []; in if (ports!=[]) then "tcp dport ${toPortList ports} accept" else "")
             (let ports=traversal.allowedUDPPorts or []; in if (ports!=[]) then "udp dport ${toPortList ports} accept" else "")
             (if (traversal.policy or null) != null then traversal.policy else "")
           ];
         })))
 
-        # nixos-firewall-from-<fromZone>-to-<toZone>
+        # nixos-firewall-from-<fromZone>-ingress
         (perZone (_: true) (fromZone: {
           name = zoneFwdIngressChainName fromZone.name;
-          value = [
-            (perZone (x: x.hasExpressions) (toZone: let
-              traversal = head ((filter (x: x.name == toZone.name) fromZone.to) ++ [{}]);
-            in {
-              onExpression = toZone.egressExpression;
-              jump = traversalChainName fromZone.name toZone.name;
-            }))
-          ];
+          value = (perZone (x: x.hasExpressions) (toZone: {
+            onExpression = toZone.egressExpression;
+            jump = traversalChainName fromZone.name toZone.name;
+          }));
         }))
 
       ]);
