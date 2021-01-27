@@ -18,19 +18,17 @@ let
     (concatStringsSep sep)
   ];
 
-  zones = listToAttrs (forEach (attrValues cfg.zones) (zone: {
-    name = zone.name;
-    value = let
-      ingressExpressionRaw = concatNonEmptyStringsSep " " [
-        (optionalString (length zone.interfaces > 0) "iifname { ${concatStringsSep ", " zone.interfaces} }")
-        zone.ingressExpression
-      ];
-      egressExpressionRaw = concatNonEmptyStringsSep " " [
-        (optionalString (length zone.interfaces > 0) "oifname { ${concatStringsSep ", " zone.interfaces} }")
-        zone.egressExpression
-      ];
-    in zone // rec {
-      parent = null;
+  zones = foldl' recursiveUpdate {} (forEach (attrValues cfg.zones) (zone: let
+    ingressExpressionRaw = concatNonEmptyStringsSep " " [
+      (optionalString (length zone.interfaces > 0) "iifname { ${concatStringsSep ", " zone.interfaces} }")
+      zone.ingressExpression
+    ];
+    egressExpressionRaw = concatNonEmptyStringsSep " " [
+      (optionalString (length zone.interfaces > 0) "oifname { ${concatStringsSep ", " zone.interfaces} }")
+      zone.egressExpression
+    ];
+  in {
+    "${zone.name}" = zone // rec {
       toTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${zone.name}".to."${t.name}" or {}));
       to = pipe toTraversals [ (map (x: {name=x.to;value=x;})) listToAttrs ];
       fromTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${t.name}".to."${zone.name}" or {}));
@@ -157,16 +155,18 @@ in {
 
       chains = {
 
-        input = [''
-          type filter hook input priority 0; policy drop
-          iifname lo accept
-          ct state {established, related} accept
-          ct state invalid drop
-          ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
-          ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept
-          ip6 nexthdr icmpv6 icmpv6 type echo-request accept
-          ip protocol icmp icmp type echo-request accept
-          tcp dport 22 accept''
+        input = [
+          ''
+            type filter hook input priority 0; policy drop
+            iifname lo accept
+            ct state {established, related} accept
+            ct state invalid drop
+            ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
+            ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept
+            ip6 nexthdr icmpv6 icmpv6 type echo-request accept
+            ip protocol icmp icmp type echo-request accept
+            tcp dport 22 accept
+          ''
           (forEach (filter (x: x.fromZone.hasExpressions) localZone.fromTraversals) (traversal: {
             onExpression = traversal.fromZone.ingressExpression;
             jump = traversalChainName traversal.from traversal.to;
