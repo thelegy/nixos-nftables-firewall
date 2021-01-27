@@ -160,9 +160,10 @@ in {
 
         nixos-firewall-snat = [
           "type nat hook postrouting priority srcnat;"
-          (forEach (filter (zone: length zone.interfaces > 0 && zone.parent == null) (attrValues zones)) (zone:
-            "${zone.ingressExpression} masquerade random"
-          ))
+          (perZone (x: x.hasExpressions && x.parent == null) (fromZone:
+            (forEach (filter (y: zones."${y.name}".hasExpressions && y.masquerade) fromZone.to) (to:
+              "${fromZone.ingressExpression} ${zones."${to.name}".egressExpression} masquerade random"
+          ))))
         ];
 
         nixos-firewall-forward = [ ''
