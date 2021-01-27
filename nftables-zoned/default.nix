@@ -225,7 +225,7 @@ in {
         "nixos-firewall-snat"
       ];
 
-    in traceVal ''
+    in ''
       table inet filter {
 
       ${prefixEachLine "  " (renderChains chains baseChains)}
