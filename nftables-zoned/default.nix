@@ -1,6 +1,7 @@
 args@{ config, lib, ... }:
 with lib;
 with import ./common_helpers.nix args;
+with import ./types.nix lib;
 
 let
 
@@ -134,9 +135,21 @@ in {
       type = with types; loaOf (submodule perTraversalFromConfig);
       default = {};
     };
+    networking.nftables.firewall.objects = mkOption {
+      type = types.nftObjects;
+    };
   };
 
-  config = mkIf cfg.enable {
+  config = let
+
+    baseChains = [
+      "input"
+      "nixos-firewall-forward"
+      "nixos-firewall-dnat"
+      "nixos-firewall-snat"
+    ];
+
+  in mkIf cfg.enable {
     assertions = flatten [
       (perTraversal (_: true) (traversal: rec {
         existingZoneNames = perZone (_: true) (zone: zone.name);
@@ -150,85 +163,76 @@ in {
         message = "There needs to exist exactly one localZone.";
       }
     ];
-    networking.nftables.enable = true;
-    networking.nftables.ruleset = let
 
-      chains = {
+    networking.nftables.firewall.objects = {
 
-        input = [
-          ''
-            type filter hook input priority 0; policy drop
-            iifname lo accept
-            ct state {established, related} accept
-            ct state invalid drop
-            ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
-            ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept
-            ip6 nexthdr icmpv6 icmpv6 type echo-request accept
-            ip protocol icmp icmp type echo-request accept
-            tcp dport 22 accept
-          ''
-          (forEach (filter (x: x.fromZone.hasExpressions) localZone.fromTraversals) (traversal: {
-            onExpression = traversal.fromZone.ingressExpression;
-            jump = traversalChainName traversal.from traversal.to;
-          }))
-          "counter drop"
-        ];
-
-        nixos-firewall-dnat = "type nat hook prerouting priority dstnat;";
-
-        nixos-firewall-snat = [
-          "type nat hook postrouting priority srcnat;"
-          (perTraversal (x: x.fromZone.hasExpressions && x.fromZone.parent==null && x.toZone.hasExpressions && x.masquerade) (traversal:
-            "${traversal.fromZone.ingressExpression} ${traversal.toZone.egressExpression} masquerade random"
-          ))
-        ];
-
-        nixos-firewall-forward = [ ''
-          type filter hook forward priority 0; policy drop;
+      input = [
+        ''
+          type filter hook input priority 0; policy drop
+          iifname lo accept
           ct state {established, related} accept
-          ct state invalid drop''
-          (perZone (x: x.hasExpressions && x.parent == null) (zone: {
-            onExpression = zone.ingressExpression;
-            jump = zoneFwdIngressChainName zone.name;
-          }))
-          "counter drop"
-        ];
-
-      } // listToAttrs ( flatten [
-
-        # nixos-firewall-from-<fromZone>-to-<toZone>
-        (perZone (_: true) (fromZone: perZone (_: true) (toZone: rec {
-          traversal = fromZone.to."${toZone.name}" or {};
-          name = traversalChainName fromZone.name toZone.name;
-          value = [
-            (let ports=traversal.allowedTCPPorts or []; in if (ports!=[]) then "tcp dport ${toPortList ports} accept" else "")
-            (let ports=traversal.allowedUDPPorts or []; in if (ports!=[]) then "udp dport ${toPortList ports} accept" else "")
-            (if (traversal.policy or null) != null then traversal.policy else "")
-          ];
-        })))
-
-        # nixos-firewall-from-<fromZone>-ingress
-        (perZone (_: true) (fromZone: {
-          name = zoneFwdIngressChainName fromZone.name;
-          value = (perZone (x: x.hasExpressions) (toZone: {
-            onExpression = toZone.egressExpression;
-            jump = traversalChainName fromZone.name toZone.name;
-          }));
+          ct state invalid drop
+          ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
+          ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept
+          ip6 nexthdr icmpv6 icmpv6 type echo-request accept
+          ip protocol icmp icmp type echo-request accept
+          tcp dport 22 accept
+        ''
+        (forEach (filter (x: x.fromZone.hasExpressions) localZone.fromTraversals) (traversal: {
+          onExpression = traversal.fromZone.ingressExpression;
+          jump = traversalChainName traversal.from traversal.to;
         }))
-
-      ]);
-
-      baseChains = [
-        "input"
-        "nixos-firewall-forward"
-        "nixos-firewall-dnat"
-        "nixos-firewall-snat"
+        "counter drop"
       ];
 
-    in ''
+      nixos-firewall-dnat = "type nat hook prerouting priority dstnat;";
+
+      nixos-firewall-snat = [
+        "type nat hook postrouting priority srcnat;"
+        (perTraversal (x: x.fromZone.hasExpressions && x.fromZone.parent==null && x.toZone.hasExpressions && x.masquerade) (traversal:
+          "${traversal.fromZone.ingressExpression} ${traversal.toZone.egressExpression} masquerade random"
+        ))
+      ];
+
+      nixos-firewall-forward = [ ''
+        type filter hook forward priority 0; policy drop;
+        ct state {established, related} accept
+        ct state invalid drop''
+        (perZone (x: x.hasExpressions && x.parent == null) (zone: {
+          onExpression = zone.ingressExpression;
+          jump = zoneFwdIngressChainName zone.name;
+        }))
+        "counter drop"
+      ];
+
+    } // listToAttrs ( flatten [
+
+      # nixos-firewall-from-<fromZone>-to-<toZone>
+      (perZone (_: true) (fromZone: perZone (_: true) (toZone: rec {
+        traversal = fromZone.to."${toZone.name}" or {};
+        name = traversalChainName fromZone.name toZone.name;
+        value = [
+          (let ports=traversal.allowedTCPPorts or []; in if (ports!=[]) then "tcp dport ${toPortList ports} accept" else "")
+          (let ports=traversal.allowedUDPPorts or []; in if (ports!=[]) then "udp dport ${toPortList ports} accept" else "")
+          (if (traversal.policy or null) != null then traversal.policy else "")
+        ];
+      })))
+
+      # nixos-firewall-from-<fromZone>-ingress
+      (perZone (_: true) (fromZone: {
+        name = zoneFwdIngressChainName fromZone.name;
+        value = (perZone (x: x.hasExpressions) (toZone: {
+          onExpression = toZone.egressExpression;
+          jump = traversalChainName fromZone.name toZone.name;
+        }));
+      }))
+
+    ]);
+
+    networking.nftables.enable = true;
       table inet filter {
 
-      ${prefixEachLine "  " (renderChains chains baseChains)}
+      ${prefixEachLine "  " (cfg.objects._render baseChains)}
       }
     '';
   };
