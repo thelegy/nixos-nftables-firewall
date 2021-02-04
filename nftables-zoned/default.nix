@@ -138,18 +138,13 @@ in {
     networking.nftables.firewall.objects = mkOption {
       type = types.nftObjects;
     };
+    networking.nftables.firewall.baseChains = mkOption {
+      type = with types; listOf str;
+    };
   };
 
-  config = let
+  config = mkIf cfg.enable {
 
-    baseChains = [
-      "input"
-      "nixos-firewall-forward"
-      "nixos-firewall-dnat"
-      "nixos-firewall-snat"
-    ];
-
-  in mkIf cfg.enable {
     assertions = flatten [
       (perTraversal (_: true) (traversal: rec {
         existingZoneNames = perZone (_: true) (zone: zone.name);
@@ -162,6 +157,13 @@ in {
         assertion = (count (x: x.localZone) (attrValues zones)) == 1;
         message = "There needs to exist exactly one localZone.";
       }
+    ];
+
+    networking.nftables.firewall.baseChains = [
+      "input"
+      "nixos-firewall-forward"
+      "nixos-firewall-dnat"
+      "nixos-firewall-snat"
     ];
 
     networking.nftables.firewall.objects = {
@@ -232,7 +234,7 @@ in {
     networking.nftables.enable = true;
       table inet filter {
 
-      ${prefixEachLine "  " (cfg.objects._render baseChains)}
+      ${prefixEachLine "  " (cfg.objects._render cfg.baseChains)}
       }
     '';
   };
