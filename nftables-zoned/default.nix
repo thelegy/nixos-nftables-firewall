@@ -9,6 +9,8 @@ let
 
   cfg = config.networking.nftables.firewall;
 
+  services = config.networking.services;
+
   traversalChainName = from: to: "nixos-firewall-from-${from}-to-${to}";
 
   zoneFwdIngressChainName = from: "nixos-firewall-forward-${from}-ingress";
@@ -80,6 +82,10 @@ in {
         };
         allowedUDPPorts = mkOption {
           type = with types; listOf int;
+          default = [];
+        };
+        allowedServices = mkOption {
+          type = with types; listOf str;
           default = [];
         };
       };
@@ -213,9 +219,14 @@ in {
       (perZone (_: true) (fromZone: perZone (_: true) (toZone: rec {
         traversal = fromZone.to."${toZone.name}" or {};
         name = traversalChainName fromZone.name toZone.name;
-        value = [
-          (let ports=traversal.allowedTCPPorts or []; in if (ports!=[]) then "tcp dport ${toPortList ports} accept" else "")
-          (let ports=traversal.allowedUDPPorts or []; in if (ports!=[]) then "udp dport ${toPortList ports} accept" else "")
+        value = let
+          allowedServices = traversal.allowedServices or [];
+          allowedExtraPorts = protocol: (services.__getAllowedPorts protocol allowedServices) ++ (forEach (services.__getAllowedPortranges protocol allowedServices) ({from, to}: "${toString from}-${toString to}"));
+          allowedTCPPorts = (traversal.allowedTCPPorts or []) ++ (allowedExtraPorts "tcp");
+          allowedUDPPorts = (traversal.allowedUDPPorts or []) ++ (allowedExtraPorts "udp");
+        in [
+          (if (allowedTCPPorts!=[]) then "tcp dport ${toPortList allowedTCPPorts} accept" else "")
+          (if (allowedUDPPorts!=[]) then "udp dport ${toPortList allowedUDPPorts} accept" else "")
           (if (traversal.policy or null) != null then traversal.policy else "")
         ];
       })))
