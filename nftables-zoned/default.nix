@@ -221,7 +221,9 @@ in {
         name = traversalChainName fromZone.name toZone.name;
         value = let
           allowedServices = traversal.allowedServices or [];
-          allowedExtraPorts = protocol: (services.__getAllowedPorts protocol allowedServices) ++ (forEach (services.__getAllowedPortranges protocol allowedServices) ({from, to}: "${toString from}-${toString to}"));
+          getAllowedPorts = services.__getAllowedPorts;
+          getAllowedPortranges = services.__getAllowedPortranges;
+          allowedExtraPorts = protocol: (getAllowedPorts protocol allowedServices) ++ (forEach (getAllowedPortranges protocol allowedServices) ({from, to}: "${toString from}-${toString to}"));
           allowedTCPPorts = (traversal.allowedTCPPorts or []) ++ (allowedExtraPorts "tcp");
           allowedUDPPorts = (traversal.allowedUDPPorts or []) ++ (allowedExtraPorts "udp");
         in [
