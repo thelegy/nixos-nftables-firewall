@@ -184,6 +184,7 @@ in {
           ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept
           ip6 nexthdr icmpv6 icmpv6 type echo-request accept
           ip protocol icmp icmp type echo-request accept
+          ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
           tcp dport 22 accept
         ''
         (forEach (filter (x: x.fromZone.hasExpressions) localZone.fromTraversals) (traversal: {
