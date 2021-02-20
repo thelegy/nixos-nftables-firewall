@@ -7,6 +7,8 @@ let
 
   toPortList = ports: assert length ports > 0; "{ ${concatStringsSep ", " (map toString ports)} }";
 
+  toRuleName = rule: "rule-${rule.name}";
+
   cfg = config.networking.nftables.firewall;
 
   services = config.networking.services;
@@ -53,7 +55,17 @@ let
     };
   }));
 
+  rules = pipe cfg.rules [
+    attrValues
+    (filter (x: x.enable))
+    (r: forEach cfg.insertionPoints (i: filter (x: x.insertionPoint==i) r))
+    (map (sort types.firewallRule.orderFn))
+    concatLists
+  ];
+
+  perRule = filterFunc: pipe rules [ (filter filterFunc) forEach ];
   perZone = filterFunc: pipe zones [ attrValues (filter filterFunc) forEach ];
+  forEachZone = zoneNames: func: if zoneNames=="all" then func null else forEach zoneNames (z: func zones."${z}");
   perTraversal = filterFunc: pipe traversals [ attrValues (map (x: attrValues x.to)) flatten (filter filterFunc) forEach ];
 
 in {
@@ -144,6 +156,18 @@ in {
     networking.nftables.firewall.objects = mkOption {
       type = types.nftObjects;
     };
+    networking.nftables.firewall.insertionPoints = mkOption {
+      type = with types; listOf str;
+      default = [
+        "early"
+        "default"
+        "late"
+      ];
+    };
+    networking.nftables.firewall.rules = mkOption {
+      type = with types; attrsOf firewallRule;
+      default = {};
+    };
     networking.nftables.firewall.baseChains = mkOption {
       type = with types; listOf str;
     };
@@ -187,6 +211,10 @@ in {
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
           tcp dport 22 accept
         ''
+        (perRule (_: true) (rule: (forEach (filter (x: zones."${x}".localZone) rule.to) (_: (forEachZone rule.from (from: {
+          onExpression = from.ingressExpression or "";
+          jump = toRuleName rule;
+        }))))))
         (forEach (filter (x: x.fromZone.hasExpressions) localZone.fromTraversals) (traversal: {
           onExpression = traversal.fromZone.ingressExpression;
           jump = traversalChainName traversal.from traversal.to;
@@ -207,6 +235,13 @@ in {
         type filter hook forward priority 0; policy drop;
         ct state {established, related} accept
         ct state invalid drop''
+        (perRule (_: true) (rule: (forEachZone rule.from (from: (forEachZone rule.to (to: {
+          onExpression = concatNonEmptyStringsSep " " [
+            (from.ingressExpression or "")
+            (to.egressExpression or "")
+          ];
+          jump = toRuleName rule;
+        }))))))
         (perZone (x: x.hasExpressions && x.parent == null) (zone: {
           onExpression = zone.ingressExpression;
           jump = zoneFwdIngressChainName zone.name;
@@ -241,6 +276,21 @@ in {
           onExpression = toZone.egressExpression;
           jump = traversalChainName fromZone.name toZone.name;
         }));
+      }))
+
+      (perRule (_: true) (rule: {
+        name = toRuleName rule;
+        value = let
+          getAllowedPorts = services.__getAllowedPorts;
+          getAllowedPortranges = services.__getAllowedPortranges;
+          allowedExtraPorts = protocol: (getAllowedPorts protocol rule.allowedServices) ++ (forEach (getAllowedPortranges protocol rule.allowedServices) ({from, to}: "${toString from}-${toString to}"));
+          allowedTCPPorts = (allowedExtraPorts "tcp");
+          allowedUDPPorts = (allowedExtraPorts "udp");
+        in [
+          (optionalString (allowedTCPPorts!=[]) "tcp dport ${toPortList allowedTCPPorts} accept")
+          (optionalString (allowedUDPPorts!=[]) "udp dport ${toPortList allowedUDPPorts} accept")
+          (optionalString (rule.verdict!=null) rule.verdict)
+        ];
       }))
 
     ]);
