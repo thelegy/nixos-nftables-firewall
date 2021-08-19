@@ -34,6 +34,8 @@ let
     ];
   in {
     "${zone.name}" = zone // rec {
+      parent = mapNullable (parentName: zones."${parentName}") zone.parent;
+      children = filter (x: x.parent.name or "" == zone.name) (attrValues zones);
       toTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${zone.name}".to."${t.name}" or {}));
       to = pipe toTraversals [ (map (x: {name=x.to;value=x;})) listToAttrs ];
       fromTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${t.name}".to."${zone.name}" or {}));
@@ -119,6 +121,10 @@ in {
         name = mkOption {
           type = types.str;
         };
+        parent = mkOption {
+          type = with types; nullOr str;
+          default = null;
+        };
         localZone = mkOption {
           type = types.bool;
           default = false;
@@ -191,7 +197,7 @@ in {
 
     networking.nftables.firewall.baseChains = [
       "input"
-      "nixos-firewall-forward"
+      "forward"
       "nixos-firewall-dnat"
       "nixos-firewall-snat"
     ];
@@ -227,11 +233,11 @@ in {
       nixos-firewall-snat = [
         "type nat hook postrouting priority srcnat;"
         (perTraversal (x: x.fromZone.hasExpressions && x.fromZone.parent==null && x.toZone.hasExpressions && x.masquerade) (traversal:
-          "${traversal.fromZone.ingressExpression} ${traversal.toZone.egressExpression} masquerade random"
+          "meta protocol ip ${traversal.fromZone.ingressExpression} ${traversal.toZone.egressExpression} masquerade random"
         ))
       ];
 
-      nixos-firewall-forward = [ ''
+      forward = [ ''
         type filter hook forward priority 0; policy drop;
         ct state {established, related} accept
         ct state invalid drop''
@@ -296,6 +302,7 @@ in {
     ]);
 
     networking.nftables.enable = true;
+    networking.nftables.ruleset = traceVal ''
       table inet filter {
 
       ${prefixEachLine "  " (cfg.objects._render cfg.baseChains)}

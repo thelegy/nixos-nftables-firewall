@@ -1,5 +1,6 @@
 lib:
 with lib;
+with import ./common_helpers.nix {inherit lib;};
 
 {
   types = with lib.types; lib.types // rec {
@@ -44,6 +45,18 @@ with lib;
     in isAttrs x && all (y: elem y validKeys) allKeys && all (y: elem y allKeys) mandatoryKeys;
 
     nftObjects = let
+      internalRuleType = submodule {
+        options = {
+          line = mkOption {
+            type = str;
+          };
+          deps = mkOption {
+            type = listOf str;
+            default = [];
+          };
+        };
+      };
+
       ruleType = let
         jumpSchema = {
           jump = true;
