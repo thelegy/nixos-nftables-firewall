@@ -3,7 +3,9 @@ with lib;
 with import ./common_helpers.nix {inherit lib;};
 
 {
-  types = with lib.types; lib.types // rec {
+  types = with lib.types; let
+    unique = lib.unique;
+  in lib.types // rec {
 
 
     inherit (rec {
