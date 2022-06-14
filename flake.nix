@@ -2,9 +2,9 @@
 
   outputs = { ... }: let
     modules = {
-      networking-services = ./networking-services.nix;
-      nftables = ./nftables.nix;
-      nftables-zoned = ./nftables-zoned;
+      networking-services = import ./networking-services.nix;
+      nftables = import ./nftables.nix;
+      nftables-zoned = import ./nftables-zoned;
     };
   in {
     nixosModules = modules // {
