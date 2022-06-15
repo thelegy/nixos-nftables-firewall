@@ -153,7 +153,12 @@ in {
     '';
     networking.nftables.firewall.zones = mkOption {
       type = with types; loaOf (submodule perZoneConfig);
-      default = {};
+      default = {
+        fw = {
+          localZone = true;
+          interfaces = [ "lo" ];
+        };
+      };
     };
     networking.nftables.firewall.from = mkOption {
       type = with types; loaOf (submodule perTraversalFromConfig);
