@@ -164,9 +164,6 @@ in {
       type = with types; loaOf (submodule perTraversalFromConfig);
       default = {};
     };
-    networking.nftables.firewall.objects = mkOption {
-      type = types.nftObjects;
-    };
     networking.nftables.firewall.insertionPoints = mkOption {
       type = with types; listOf str;
       default = [
@@ -207,13 +204,9 @@ in {
       "nixos-firewall-snat"
     ];
 
-    networking.nftables.chains = mapAttrs (k: v: { generated.rules = pipe v [
-      toList
-      flatten
-    ]; }) networking.nftables.firewall.objects;
-    networking.nftables.firewall.objects = {
+    networking.nftables.chains = mapAttrs (k: v: { generated.rules = v; }) ({
 
-      input = [
+      input = flatten [
         "type filter hook input priority 0; policy drop"
         "iifname lo accept"
         "ct state {established, related} accept"
@@ -235,16 +228,18 @@ in {
         "counter drop"
       ];
 
-      dnat = "type nat hook prerouting priority dstnat;";
+      dnat = [
+        "type nat hook prerouting priority dstnat;"
+      ];
 
-      snat = [
+      snat = flatten [
         "type nat hook postrouting priority srcnat;"
         (perTraversal (x: x.fromZone.hasExpressions && x.fromZone.parent==null && x.toZone.hasExpressions && x.masquerade) (traversal:
           "meta protocol ip ${traversal.fromZone.ingressExpression} ${traversal.toZone.egressExpression} masquerade random"
         ))
       ];
 
-      forward = [
+      forward =  flatten  [
         "type filter hook forward priority 0; policy drop;"
         "ct state {established, related} accept"
         "ct state invalid drop"
@@ -306,7 +301,7 @@ in {
         ];
       }))
 
-    ]);
+    ]));
 
     networking.nftables.enable = true;
   };
