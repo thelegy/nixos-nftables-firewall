@@ -8,6 +8,8 @@ let
 in with lib; {
   tests = run-tests {
 
+    testChains = import ./testChains.nix lib;
+
     testEmpty = import ./testEmpty.nix lib;
 
     testWebserver = import ./testWebserver.nix lib;
