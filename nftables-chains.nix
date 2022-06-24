@@ -141,4 +141,8 @@ in {
 
   };
 
+  config.networking.nftables.ruleset = let
+    inherit (config.build.nftables-chains) requiredChains ruleset;
+  in mkIf (length requiredChains > 0) ruleset;
+
 }

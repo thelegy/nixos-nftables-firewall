@@ -184,7 +184,7 @@ in {
     };
   };
 
-  config = mkIf cfg.enable {
+  config = mkIf cfg.enable rec {
 
     assertions = flatten [
       (perTraversal (_: true) (traversal: rec {
@@ -207,21 +207,23 @@ in {
       "nixos-firewall-snat"
     ];
 
+    networking.nftables.chains = mapAttrs (k: v: { generated.rules = pipe v [
+      toList
+      flatten
+    ]; }) networking.nftables.firewall.objects;
     networking.nftables.firewall.objects = {
 
       input = [
-        ''
-          type filter hook input priority 0; policy drop
-          iifname lo accept
-          ct state {established, related} accept
-          ct state invalid drop
-          ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
-          ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept
-          ip6 nexthdr icmpv6 icmpv6 type echo-request accept
-          ip protocol icmp icmp type echo-request accept
-          ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
-          tcp dport 22 accept
-        ''
+        "type filter hook input priority 0; policy drop"
+        "iifname lo accept"
+        "ct state {established, related} accept"
+        "ct state invalid drop"
+        "ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept"
+        "ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept"
+        "ip6 nexthdr icmpv6 icmpv6 type echo-request accept"
+        "ip protocol icmp icmp type echo-request accept"
+        "ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept"
+        "tcp dport 22 accept"
         (perRule (_: true) (rule: (forEach (filter (x: zones."${x}".localZone) rule.to) (_: (forEachZone rule.from (from: {
           onExpression = from.ingressExpression or "";
           jump = toRuleName rule;
@@ -233,19 +235,19 @@ in {
         "counter drop"
       ];
 
-      nixos-firewall-dnat = "type nat hook prerouting priority dstnat;";
+      dnat = "type nat hook prerouting priority dstnat;";
 
-      nixos-firewall-snat = [
+      snat = [
         "type nat hook postrouting priority srcnat;"
         (perTraversal (x: x.fromZone.hasExpressions && x.fromZone.parent==null && x.toZone.hasExpressions && x.masquerade) (traversal:
           "meta protocol ip ${traversal.fromZone.ingressExpression} ${traversal.toZone.egressExpression} masquerade random"
         ))
       ];
 
-      forward = [ ''
-        type filter hook forward priority 0; policy drop;
-        ct state {established, related} accept
-        ct state invalid drop''
+      forward = [
+        "type filter hook forward priority 0; policy drop;"
+        "ct state {established, related} accept"
+        "ct state invalid drop"
         (perRule (_: true) (rule: (forEachZone rule.from (from: (forEachZone rule.to (to: {
           onExpression = concatNonEmptyStringsSep " " [
             (from.ingressExpression or "")
@@ -307,12 +309,6 @@ in {
     ]);
 
     networking.nftables.enable = true;
-    networking.nftables.ruleset = traceVal ''
-      table inet filter {
-
-      ${prefixEachLine "  " (cfg.objects._render cfg.baseChains)}
-      }
-    '';
   };
 
 }

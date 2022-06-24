@@ -39,6 +39,20 @@ machineTest ({ config, ... }: {
     expected = ''
       table inet filter {
 
+        chain dnat {
+          type nat hook prerouting priority dstnat;
+        }
+
+        chain forward {
+          type filter hook forward priority 0; policy drop;
+          ct state {established, related} accept
+          ct state invalid drop
+          iifname { lo } oifname { lo } accept
+          oifname { lo } tcp dport { 22 } accept
+          oifname { lo } tcp dport { 80, 443 } accept
+          counter drop
+        }
+
         chain input {
           type filter hook input priority 0; policy drop
           iifname lo accept
@@ -55,25 +69,11 @@ machineTest ({ config, ... }: {
           tcp dport { 80, 443 } accept
           counter drop
         }
-        
-        chain forward {
-          type filter hook forward priority 0; policy drop;
-          ct state {established, related} accept
-          ct state invalid drop
-          iifname { lo } oifname { lo } accept
-          oifname { lo } tcp dport { 22 } accept
-          oifname { lo } tcp dport { 80, 443 } accept
-          counter drop
-        }
-        
-        chain nixos-firewall-dnat {
-          type nat hook prerouting priority dstnat;
-        }
-        
-        chain nixos-firewall-snat {
+
+        chain snat {
           type nat hook postrouting priority srcnat;
         }
-        
+
       }
     '';
   };
