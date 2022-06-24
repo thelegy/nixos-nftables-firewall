@@ -7,45 +7,6 @@ with import ./common_helpers.nix {inherit lib;};
     unique = lib.unique;
   in lib.types // rec {
 
-
-    inherit (rec {
-
-      strSetWith = {canonicalize, check}: let
-        toList = flip pipe [canonicalize attrNames naturalSort];
-      in (mkOptionType {
-        inherit check;
-        name = "strSet";
-        description = "set of strings";
-        merge = loc: defs: let
-          finalValue = (attrsOf bool).merge loc (map (def: def // { value = canonicalize def.value; }) defs);
-        in toList (filterAttrs (x: _: finalValue."${x}") finalValue);
-        emptyValue = {};
-      }) // { inherit canonicalize toList; };
-
-      strSet = strSetWith {
-        canonicalize = x:
-          if str.check x then { "${x}" = true; }
-          else if (listOf str).check x then (listToAttrs (map (y: {name=y; value=true;}) x))
-          else x;
-        check = x:  str.check x || (listOf str).check x || (attrsOf bool).check x;
-      };
-
-      strSubset = domain: (
-      assert assertMsg (strSet.check domain) "strSubset: domain must be a strSet" ;
-      assert assertMsg (! (strSet.canonicalize domain).all or false) "strSubset: \"all\" cannot be part of the domain" ;
-      strSetWith {
-        canonicalize = x: strSet.canonicalize (if x == "all" then domain else x);
-        check = x: x == "all" || (strSet.check x && all (y: (strSet.canonicalize domain)."${y}" or false) (strSet.toList x));
-      });
-
-    }) strSet strSubset;
-
-
-
-
-
-
-
     firewallRule = let
       baseType = submodule ({ name, ... }: {
         options = {
