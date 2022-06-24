@@ -1,7 +1,6 @@
 args@{ config, lib, ... }:
 with lib;
 with import ./common_helpers.nix args;
-with import ./types.nix lib;
 
 let
 
@@ -61,7 +60,7 @@ let
     attrValues
     (filter (x: x.enable))
     (r: forEach cfg.insertionPoints (i: filter (x: x.insertionPoint==i) r))
-    (map (sort types.firewallRule.orderFn))
+    (map (sort firewallRuleType.orderFn))
     concatLists
   ];
 
@@ -70,84 +69,128 @@ let
   forEachZone = zoneNames: func: if zoneNames=="all" then func null else forEach zoneNames (z: func zones."${z}");
   perTraversal = filterFunc: pipe traversals [ attrValues (map (x: attrValues x.to)) flatten (filter filterFunc) forEach ];
 
-in {
+  perTraversalToConfig = from: { name, ... }: {
+    options = {
+      from = mkOption {
+        type = types.str;
+      };
+      to = mkOption {
+        type = types.str;
+      };
+      policy = mkOption {
+        type = with types; nullOr str;
+        default = null;
+      };
+      masquerade = mkOption {
+        type = types.bool;
+        default = false;
+      };
+      allowedTCPPorts = mkOption {
+        type = with types; listOf int;
+        default = [];
+      };
+      allowedUDPPorts = mkOption {
+        type = with types; listOf int;
+        default = [];
+      };
+      allowedServices = mkOption {
+        type = with types; listOf str;
+        default = [];
+      };
+    };
+    config = {
+      from = mkDefault from;
+      to = mkDefault name;
+    };
+  };
 
-  options = let
+  perTraversalFromConfig = { name, ... }: {
+    options.to = mkOption {
+      type = with types; loaOf (submodule (perTraversalToConfig name));
+      default = {};
+    };
+  };
 
-    perTraversalToConfig = from: { name, ... }: {
+  perZoneConfig = { name, ... }: {
+    options = {
+      name = mkOption {
+        type = types.str;
+      };
+      parent = mkOption {
+        type = with types; nullOr str;
+        default = null;
+      };
+      localZone = mkOption {
+        type = types.bool;
+        default = false;
+      };
+      interfaces = mkOption {
+        type = with types; listOf str;
+        default = [];
+      };
+      ingressExpression = mkOption {
+        type = with types; nullOr str;
+        default = null;
+      };
+      egressExpression = mkOption {
+        type = with types; nullOr str;
+        default = null;
+      };
+    };
+    config = {
+      name = mkDefault name;
+    };
+  };
+
+  firewallRuleType = with types; let
+    baseType = submodule ({ name, ... }: {
       options = {
+        enable = mkOption {
+          type = bool;
+          default = true;
+          description = "whether the rule will be used.";
+        };
+        insertionPoint = mkOption {
+          type = str;
+          default = "default";
+        };
+        name = mkOption {
+          type = str;
+        };
         from = mkOption {
-          type = types.str;
+          type = either (enum [ "all" ]) (listOf str);
         };
         to = mkOption {
-          type = types.str;
-        };
-        policy = mkOption {
-          type = with types; nullOr str;
-          default = null;
-        };
-        masquerade = mkOption {
-          type = types.bool;
-          default = false;
-        };
-        allowedTCPPorts = mkOption {
-          type = with types; listOf int;
-          default = [];
-        };
-        allowedUDPPorts = mkOption {
-          type = with types; listOf int;
-          default = [];
+          type = either (enum [ "all" ]) (listOf str);
         };
         allowedServices = mkOption {
-          type = with types; listOf str;
+          type = listOf str;
           default = [];
         };
-      };
-      config = {
-        from = mkDefault from;
-        to = mkDefault name;
-      };
-    };
-
-    perTraversalFromConfig = { name, ... }: {
-      options.to = mkOption {
-        type = with types; loaOf (submodule (perTraversalToConfig name));
-        default = {};
-      };
-    };
-
-    perZoneConfig = { name, ... }: {
-      options = {
-        name = mkOption {
-          type = types.str;
-        };
-        parent = mkOption {
-          type = with types; nullOr str;
-          default = null;
-        };
-        localZone = mkOption {
-          type = types.bool;
-          default = false;
-        };
-        interfaces = mkOption {
-          type = with types; listOf str;
-          default = [];
-        };
-        ingressExpression = mkOption {
-          type = with types; nullOr str;
-          default = null;
-        };
-        egressExpression = mkOption {
-          type = with types; nullOr str;
+        verdict = mkOption {
+          type = nullOr (enum [ "accept" "drop" "reject" ]);
           default = null;
         };
       };
-      config = {
-        name = mkDefault name;
-      };
-    };
+      config.name = mkDefault name;
+    });
+    mergeCompareFunctions = fns: x: y: foldr (fn: res: if res == 0 then fn x y else res) 0 fns;
+    compareEnable = x: y: if x.enable && ! y.enable then -1 else if ! x.enable && y.enable then 1 else 0;
+    compareFrom = x: y: compareLists compare x.from y.from;
+    compareTo = x: y: compareLists compare x.to y.to;
+    compareAllowedServices = x: y: compareLists compare x.allowedServices y.allowedServices;
+    compareFn = mergeCompareFunctions [
+      compareEnable
+      compareFrom
+      compareTo
+      compareAllowedServices
+    ];
+    orderFn = x: y: (compareFn x y) < 0;
+  in baseType // { inherit orderFn; };
 
-  in {
+in {
+
+  options = {
     networking.nftables.firewall.enable = mkEnableOption ''
       Enable the zoned nftables based firewall.
     '';
@@ -173,7 +216,7 @@ in {
       ];
     };
     networking.nftables.firewall.rules = mkOption {
-      type = with types; attrsOf firewallRule;
+      type = types.attrsOf firewallRuleType;
       default = {};
     };
     networking.nftables.firewall.baseChains = mkOption {
