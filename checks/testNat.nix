@@ -8,9 +8,6 @@ machineTest ({ config, ... }: {
 
   networking.nftables.firewall = {
     enable = true;
-    zones.local = {
-      localZone = true;
-    };
     zones.a.interfaces = [ "a" ];
     zones.b.interfaces = [ "b" ];
 

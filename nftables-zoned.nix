@@ -41,12 +41,6 @@ with dependencyDagOfSubmodule.lib.bake lib;
           name = mkDefault name;
         };
       }));
-      default = {
-        fw = {
-          localZone = true;
-          interfaces = [ "lo" ];
-        };
-      };
     };
 
     rules = mkOption {
@@ -178,6 +172,11 @@ with dependencyDagOfSubmodule.lib.bake lib;
         message = "There needs to exist exactly one localZone.";
       }
     ];
+
+    networking.nftables.firewall.zones.fw = {
+      localZone = mkDefault true;
+      interfaces = mkDefault [ "lo" ];
+    };
 
     networking.nftables.chains = let
       hookRule = hook: {

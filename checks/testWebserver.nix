@@ -11,10 +11,6 @@ machineTest ({ config, ... }: {
   networking.services.https = 443;
   networking.nftables.firewall = {
     enable = true;
-    zones.fw = {
-      localZone = true;
-      interfaces = [ "lo" ];
-    };
     rules.loopback = {
       after = [ "veryEarly" ];
       before = [ "early" ];
