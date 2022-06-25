@@ -85,25 +85,9 @@ with import ./common_helpers.nix lib;
           to = mkOption {
             type = types.str;
           };
-          policy = mkOption {
-            type = with types; nullOr str;
-            default = null;
-          };
           masquerade = mkOption {
             type = types.bool;
             default = false;
-          };
-          allowedTCPPorts = mkOption {
-            type = with types; listOf int;
-            default = [];
-          };
-          allowedUDPPorts = mkOption {
-            type = with types; listOf int;
-            default = [];
-          };
-          allowedServices = mkOption {
-            type = with types; listOf str;
-            default = [];
           };
         };
         config = {
@@ -132,10 +116,6 @@ with import ./common_helpers.nix lib;
     cfg = config.networking.nftables.firewall;
 
     services = config.networking.services;
-
-    traversalChainName = from: to: "nixos-firewall-from-${from}-to-${to}";
-
-    zoneFwdIngressChainName = from: "nixos-firewall-forward-${from}-ingress";
 
     concatNonEmptyStringsSep = sep: strings: pipe strings [
       (filter (x: x != null))
@@ -251,63 +231,26 @@ with import ./common_helpers.nix lib;
 
     }) (mapAttrs (k: v: { generated.rules = v; }) ({
 
-      input = flatten [
+      input = flatten
         (perRule (_: true) (rule: (forEach (filter (x: zones."${x}".localZone) rule.to) (_: (forEachZone rule.from (from: {
           onExpression = from.ingressExpression or "";
           jump = toRuleName rule;
-        }))))))
-        (forEach (filter (x: x.fromZone.hasExpressions) localZone.fromTraversals) (traversal: {
-          onExpression = traversal.fromZone.ingressExpression;
-          jump = traversalChainName traversal.from traversal.to;
-        }))
-      ];
+        }))))));
 
       snat = perTraversal (x: x.fromZone.hasExpressions && x.fromZone.parent==null && x.toZone.hasExpressions && x.masquerade) (traversal:
         "meta protocol ip ${traversal.fromZone.ingressExpression} ${traversal.toZone.egressExpression} masquerade random"
       );
 
-      forward =  flatten [
+      forward = flatten
         (perRule (_: true) (rule: (forEachZone rule.from (from: (forEachZone rule.to (to: {
           onExpression = concatNonEmptyStringsSep " " [
             (from.ingressExpression or "")
             (to.egressExpression or "")
           ];
           jump = toRuleName rule;
-        }))))))
-        (perZone (x: x.hasExpressions && x.parent == null) (zone: {
-          onExpression = zone.ingressExpression;
-          jump = zoneFwdIngressChainName zone.name;
-        }))
-      ];
+        }))))));
 
     } // listToAttrs ( flatten [
-
-      # nixos-firewall-from-<fromZone>-to-<toZone>
-      (perZone (_: true) (fromZone: perZone (_: true) (toZone: rec {
-        traversal = fromZone.to."${toZone.name}" or {};
-        name = traversalChainName fromZone.name toZone.name;
-        value = let
-          allowedServices = traversal.allowedServices or [];
-          getAllowedPorts = services.__getAllowedPorts;
-          getAllowedPortranges = services.__getAllowedPortranges;
-          allowedExtraPorts = protocol: (getAllowedPorts protocol allowedServices) ++ (forEach (getAllowedPortranges protocol allowedServices) ({from, to}: "${toString from}-${toString to}"));
-          allowedTCPPorts = (traversal.allowedTCPPorts or []) ++ (allowedExtraPorts "tcp");
-          allowedUDPPorts = (traversal.allowedUDPPorts or []) ++ (allowedExtraPorts "udp");
-        in [
-          (if (allowedTCPPorts!=[]) then "tcp dport ${toPortList allowedTCPPorts} accept" else "")
-          (if (allowedUDPPorts!=[]) then "udp dport ${toPortList allowedUDPPorts} accept" else "")
-          (if (traversal.policy or null) != null then traversal.policy else "")
-        ];
-      })))
-
-      # nixos-firewall-from-<fromZone>-ingress
-      (perZone (_: true) (fromZone: {
-        name = zoneFwdIngressChainName fromZone.name;
-        value = (perZone (x: x.hasExpressions) (toZone: {
-          onExpression = toZone.egressExpression;
-          jump = traversalChainName fromZone.name toZone.name;
-        }));
-      }))
 
       (perRule (_: true) (rule: {
         name = toRuleName rule;
