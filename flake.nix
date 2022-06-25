@@ -10,7 +10,7 @@
       networking-services = import ./networking-services.nix;
       nftables = import ./nftables.nix;
       nftables-chains = import ./nftables-chains.nix flakes;
-      nftables-zoned = import ./nftables-zoned flakes;
+      nftables-zoned = import ./nftables-zoned.nix flakes;
     };
   in {
 

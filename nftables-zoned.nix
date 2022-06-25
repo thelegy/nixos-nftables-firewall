@@ -3,7 +3,6 @@
 , lib
 , ... }:
 with dependencyDagOfSubmodule.lib.bake lib;
-with import ./common_helpers.nix lib;
 
 {
 
