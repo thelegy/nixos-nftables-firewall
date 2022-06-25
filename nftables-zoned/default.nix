@@ -200,19 +200,58 @@ with import ./common_helpers.nix lib;
       }
     ];
 
-    networking.nftables.chains = mapAttrs (k: v: { generated.rules = v; }) ({
+    networking.nftables.chains = let
+      hookRule = hook: {
+        after = [ "start" ];
+        before = [ "early" "veryEarly" ];
+        rules = singleton hook;
+      };
+      dropRule = {
+        after = [ "late" "veryLate" ];
+        before = [ "end" ];
+        rules = singleton "counter drop";
+      };
+      quiteEarly = extraAfter: rules: {
+        after = [ "veryEarly" ] ++ extraAfter;
+        before = [ "early" ];
+        inherit rules;
+      };
+    in recursiveUpdate ({
 
-      input = flatten [
-        "type filter hook input priority 0; policy drop"
+      input.hook = hookRule "type filter hook input priority 0; policy drop";
+      input.lo = quiteEarly [] [
         "iifname lo accept"
+      ];
+      input.ct = quiteEarly [ "lo" ] [
         "ct state {established, related} accept"
         "ct state invalid drop"
+      ];
+      input.icmp = quiteEarly [ "lo" "ct" ] [
         "ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept"
         "ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept"
         "ip6 nexthdr icmpv6 icmpv6 type echo-request accept"
         "ip protocol icmp icmp type echo-request accept"
         "ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept"
+      ];
+      input.ssh-failsafe = quiteEarly [ "lo" "ct" "icmp" ] [
         "tcp dport 22 accept"
+      ];
+      input.drop = dropRule;
+
+      dnat.hook = hookRule "type nat hook prerouting priority dstnat;";
+
+      snat.hook = hookRule "type nat hook postrouting priority srcnat;";
+
+      forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
+      forward.ct = quiteEarly [] [
+        "ct state {established, related} accept"
+        "ct state invalid drop"
+      ];
+      forward.drop = dropRule;
+
+    }) (mapAttrs (k: v: { generated.rules = v; }) ({
+
+      input = flatten [
         (perRule (_: true) (rule: (forEach (filter (x: zones."${x}".localZone) rule.to) (_: (forEachZone rule.from (from: {
           onExpression = from.ingressExpression or "";
           jump = toRuleName rule;
@@ -221,24 +260,13 @@ with import ./common_helpers.nix lib;
           onExpression = traversal.fromZone.ingressExpression;
           jump = traversalChainName traversal.from traversal.to;
         }))
-        "counter drop"
       ];
 
-      dnat = [
-        "type nat hook prerouting priority dstnat;"
-      ];
+      snat = perTraversal (x: x.fromZone.hasExpressions && x.fromZone.parent==null && x.toZone.hasExpressions && x.masquerade) (traversal:
+        "meta protocol ip ${traversal.fromZone.ingressExpression} ${traversal.toZone.egressExpression} masquerade random"
+      );
 
-      snat = flatten [
-        "type nat hook postrouting priority srcnat;"
-        (perTraversal (x: x.fromZone.hasExpressions && x.fromZone.parent==null && x.toZone.hasExpressions && x.masquerade) (traversal:
-          "meta protocol ip ${traversal.fromZone.ingressExpression} ${traversal.toZone.egressExpression} masquerade random"
-        ))
-      ];
-
-      forward =  flatten  [
-        "type filter hook forward priority 0; policy drop;"
-        "ct state {established, related} accept"
-        "ct state invalid drop"
+      forward =  flatten [
         (perRule (_: true) (rule: (forEachZone rule.from (from: (forEachZone rule.to (to: {
           onExpression = concatNonEmptyStringsSep " " [
             (from.ingressExpression or "")
@@ -250,7 +278,6 @@ with import ./common_helpers.nix lib;
           onExpression = zone.ingressExpression;
           jump = zoneFwdIngressChainName zone.name;
         }))
-        "counter drop"
       ];
 
     } // listToAttrs ( flatten [
@@ -297,7 +324,7 @@ with import ./common_helpers.nix lib;
         ];
       }))
 
-    ]));
+    ])));
 
     networking.nftables.enable = true;
   };
