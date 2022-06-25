@@ -59,6 +59,14 @@ with dependencyDagOfSubmodule.lib.bake lib;
             type = listOf str;
             default = [];
           };
+          allowedTCPPorts = mkOption {
+            type = listOf int;
+            default = [];
+          };
+          allowedUDPPorts = mkOption {
+            type = listOf int;
+            default = [];
+          };
           verdict = mkOption {
             type = nullOr (enum [ "accept" "drop" "reject" ]);
             default = null;
@@ -256,8 +264,8 @@ with dependencyDagOfSubmodule.lib.bake lib;
           getAllowedPorts = services.__getAllowedPorts;
           getAllowedPortranges = services.__getAllowedPortranges;
           allowedExtraPorts = protocol: (getAllowedPorts protocol rule.allowedServices) ++ (forEach (getAllowedPortranges protocol rule.allowedServices) ({from, to}: "${toString from}-${toString to}"));
-          allowedTCPPorts = (allowedExtraPorts "tcp");
-          allowedUDPPorts = (allowedExtraPorts "udp");
+          allowedTCPPorts = rule.allowedTCPPorts ++ (allowedExtraPorts "tcp");
+          allowedUDPPorts = rule.allowedUDPPorts ++ (allowedExtraPorts "udp");
         in [
           (optionalString (allowedTCPPorts!=[]) "tcp dport ${toPortList allowedTCPPorts} accept")
           (optionalString (allowedUDPPorts!=[]) "udp dport ${toPortList allowedUDPPorts} accept")
