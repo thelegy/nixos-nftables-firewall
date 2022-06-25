@@ -121,10 +121,6 @@ with import ./common_helpers.nix lib;
       default = {};
     };
 
-    baseChains = mkOption {
-      type = with types; listOf str;
-    };
-
   };
 
   config = let
@@ -202,13 +198,6 @@ with import ./common_helpers.nix lib;
         assertion = (count (x: x.localZone) (attrValues zones)) == 1;
         message = "There needs to exist exactly one localZone.";
       }
-    ];
-
-    networking.nftables.firewall.baseChains = [
-      "input"
-      "forward"
-      "nixos-firewall-dnat"
-      "nixos-firewall-snat"
     ];
 
     networking.nftables.chains = mapAttrs (k: v: { generated.rules = v; }) ({
