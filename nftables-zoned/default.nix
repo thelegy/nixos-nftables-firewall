@@ -5,148 +5,43 @@
 with dependencyDagOfSubmodule.lib.bake lib;
 with import ./common_helpers.nix lib;
 
-let
+{
 
-  toPortList = ports: assert length ports > 0; "{ ${concatStringsSep ", " (map toString ports)} }";
+  options.networking.nftables.firewall = {
 
-  toRuleName = rule: "rule-${rule.name}";
+    enable = mkEnableOption "the zoned nftables based firewall.";
 
-  cfg = config.networking.nftables.firewall;
-
-  services = config.networking.services;
-
-  traversalChainName = from: to: "nixos-firewall-from-${from}-to-${to}";
-
-  zoneFwdIngressChainName = from: "nixos-firewall-forward-${from}-ingress";
-
-  concatNonEmptyStringsSep = sep: strings: pipe strings [
-    (filter (x: x != null))
-    (filter (x: stringLength x > 0))
-    (concatStringsSep sep)
-  ];
-
-  zones = foldl' recursiveUpdate {} (forEach (attrValues cfg.zones) (zone: let
-    ingressExpressionRaw = concatNonEmptyStringsSep " " [
-      (optionalString (length zone.interfaces > 0) "iifname { ${concatStringsSep ", " zone.interfaces} }")
-      zone.ingressExpression
-    ];
-    egressExpressionRaw = concatNonEmptyStringsSep " " [
-      (optionalString (length zone.interfaces > 0) "oifname { ${concatStringsSep ", " zone.interfaces} }")
-      zone.egressExpression
-    ];
-  in {
-    "${zone.name}" = zone // rec {
-      parent = mapNullable (parentName: zones."${parentName}") zone.parent;
-      children = filter (x: x.parent.name or "" == zone.name) (attrValues zones);
-      toTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${zone.name}".to."${t.name}" or {}));
-      to = pipe toTraversals [ (map (x: {name=x.to;value=x;})) listToAttrs ];
-      fromTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${t.name}".to."${zone.name}" or {}));
-      from = pipe fromTraversals [ (map (x: {name=x.from;value=x;})) listToAttrs ];
-      hasExpressions = (stringLength ingressExpressionRaw > 0) && (stringLength egressExpressionRaw > 0);
-      ingressExpression = assert hasExpressions; ingressExpressionRaw;
-      egressExpression = assert hasExpressions; egressExpressionRaw;
-    };
-  }));
-
-  localZone = head (filter (x: x.localZone) (attrValues zones));
-
-  traversals = let
-    rawTraversals = pipe cfg.from [ attrValues (map (x: attrValues x.to)) flatten ];
-  in foldl' recursiveUpdate {} (forEach rawTraversals (traversal: {
-    "${traversal.from}".to."${traversal.to}" = traversal // rec {
-      fromZone = zones."${traversal.from}";
-      toZone = zones."${traversal.to}";
-    };
-  }));
-
-  rules = types.dependencyDagOfSubmodule.toOrderedList cfg.rules;
-
-  perRule = filterFunc: pipe rules [ (filter filterFunc) forEach ];
-  perZone = filterFunc: pipe zones [ attrValues (filter filterFunc) forEach ];
-  forEachZone = zoneNames: func: if zoneNames=="all" then func null else forEach zoneNames (z: func zones."${z}");
-  perTraversal = filterFunc: pipe traversals [ attrValues (map (x: attrValues x.to)) flatten (filter filterFunc) forEach ];
-
-  perTraversalToConfig = from: { name, ... }: {
-    options = {
-      from = mkOption {
-        type = types.str;
-      };
-      to = mkOption {
-        type = types.str;
-      };
-      policy = mkOption {
-        type = with types; nullOr str;
-        default = null;
-      };
-      masquerade = mkOption {
-        type = types.bool;
-        default = false;
-      };
-      allowedTCPPorts = mkOption {
-        type = with types; listOf int;
-        default = [];
-      };
-      allowedUDPPorts = mkOption {
-        type = with types; listOf int;
-        default = [];
-      };
-      allowedServices = mkOption {
-        type = with types; listOf str;
-        default = [];
-      };
-    };
-    config = {
-      from = mkDefault from;
-      to = mkDefault name;
-    };
-  };
-
-  perTraversalFromConfig = { name, ... }: {
-    options.to = mkOption {
-      type = with types; loaOf (submodule (perTraversalToConfig name));
-      default = {};
-    };
-  };
-
-  perZoneConfig = { name, ... }: {
-    options = {
-      name = mkOption {
-        type = types.str;
-      };
-      parent = mkOption {
-        type = with types; nullOr str;
-        default = null;
-      };
-      localZone = mkOption {
-        type = types.bool;
-        default = false;
-      };
-      interfaces = mkOption {
-        type = with types; listOf str;
-        default = [];
-      };
-      ingressExpression = mkOption {
-        type = with types; nullOr str;
-        default = null;
-      };
-      egressExpression = mkOption {
-        type = with types; nullOr str;
-        default = null;
-      };
-    };
-    config = {
-      name = mkDefault name;
-    };
-  };
-
-in {
-
-  options = {
-    networking.nftables.firewall.enable = mkEnableOption ''
-      Enable the zoned nftables based firewall.
-    '';
-    networking.nftables.firewall.zones = mkOption {
-      type = with types; loaOf (submodule perZoneConfig);
+    zones = mkOption {
+      type = with types; loaOf (submodule ({ name, ... }: {
+        options = {
+          name = mkOption {
+            type = types.str;
+          };
+          parent = mkOption {
+            type = with types; nullOr str;
+            default = null;
+          };
+          localZone = mkOption {
+            type = types.bool;
+            default = false;
+          };
+          interfaces = mkOption {
+            type = with types; listOf str;
+            default = [];
+          };
+          ingressExpression = mkOption {
+            type = with types; nullOr str;
+            default = null;
+          };
+          egressExpression = mkOption {
+            type = with types; nullOr str;
+            default = null;
+          };
+        };
+        config = {
+          name = mkDefault name;
+        };
+      }));
       default = {
         fw = {
           localZone = true;
@@ -154,11 +49,8 @@ in {
         };
       };
     };
-    networking.nftables.firewall.from = mkOption {
-      type = with types; loaOf (submodule perTraversalFromConfig);
-      default = {};
-    };
-    networking.nftables.firewall.rules = mkOption {
+
+    rules = mkOption {
       type = types.dependencyDagOfSubmodule ({ name, ... }: {
         options = with types; {
           name = mkOption {
@@ -183,12 +75,120 @@ in {
       });
       default = {};
     };
-    networking.nftables.firewall.baseChains = mkOption {
+
+    from = let
+      perTraversalToConfig = from: { name, ... }: {
+        options = {
+          from = mkOption {
+            type = types.str;
+          };
+          to = mkOption {
+            type = types.str;
+          };
+          policy = mkOption {
+            type = with types; nullOr str;
+            default = null;
+          };
+          masquerade = mkOption {
+            type = types.bool;
+            default = false;
+          };
+          allowedTCPPorts = mkOption {
+            type = with types; listOf int;
+            default = [];
+          };
+          allowedUDPPorts = mkOption {
+            type = with types; listOf int;
+            default = [];
+          };
+          allowedServices = mkOption {
+            type = with types; listOf str;
+            default = [];
+          };
+        };
+        config = {
+          from = mkDefault from;
+          to = mkDefault name;
+        };
+      };
+    in mkOption {
+      type = with types; loaOf (submodule ({ name, ... }: {
+        options.to = mkOption {
+          type = with types; loaOf (submodule (perTraversalToConfig name));
+          default = {};
+        };
+      }));
+      default = {};
+    };
+
+    baseChains = mkOption {
       type = with types; listOf str;
     };
+
   };
 
-  config = mkIf cfg.enable rec {
+  config = let
+
+    toPortList = ports: assert length ports > 0; "{ ${concatStringsSep ", " (map toString ports)} }";
+
+    toRuleName = rule: "rule-${rule.name}";
+
+    cfg = config.networking.nftables.firewall;
+
+    services = config.networking.services;
+
+    traversalChainName = from: to: "nixos-firewall-from-${from}-to-${to}";
+
+    zoneFwdIngressChainName = from: "nixos-firewall-forward-${from}-ingress";
+
+    concatNonEmptyStringsSep = sep: strings: pipe strings [
+      (filter (x: x != null))
+      (filter (x: stringLength x > 0))
+      (concatStringsSep sep)
+    ];
+
+    zones = foldl' recursiveUpdate {} (forEach (attrValues cfg.zones) (zone: let
+      ingressExpressionRaw = concatNonEmptyStringsSep " " [
+        (optionalString (length zone.interfaces > 0) "iifname { ${concatStringsSep ", " zone.interfaces} }")
+        zone.ingressExpression
+      ];
+      egressExpressionRaw = concatNonEmptyStringsSep " " [
+        (optionalString (length zone.interfaces > 0) "oifname { ${concatStringsSep ", " zone.interfaces} }")
+        zone.egressExpression
+      ];
+    in {
+      "${zone.name}" = zone // rec {
+        parent = mapNullable (parentName: zones."${parentName}") zone.parent;
+        children = filter (x: x.parent.name or "" == zone.name) (attrValues zones);
+        toTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${zone.name}".to."${t.name}" or {}));
+        to = pipe toTraversals [ (map (x: {name=x.to;value=x;})) listToAttrs ];
+        fromTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${t.name}".to."${zone.name}" or {}));
+        from = pipe fromTraversals [ (map (x: {name=x.from;value=x;})) listToAttrs ];
+        hasExpressions = (stringLength ingressExpressionRaw > 0) && (stringLength egressExpressionRaw > 0);
+        ingressExpression = assert hasExpressions; ingressExpressionRaw;
+        egressExpression = assert hasExpressions; egressExpressionRaw;
+      };
+    }));
+
+    localZone = head (filter (x: x.localZone) (attrValues zones));
+
+    traversals = let
+      rawTraversals = pipe cfg.from [ attrValues (map (x: attrValues x.to)) flatten ];
+    in foldl' recursiveUpdate {} (forEach rawTraversals (traversal: {
+      "${traversal.from}".to."${traversal.to}" = traversal // rec {
+        fromZone = zones."${traversal.from}";
+        toZone = zones."${traversal.to}";
+      };
+    }));
+
+    rules = types.dependencyDagOfSubmodule.toOrderedList cfg.rules;
+
+    perRule = filterFunc: pipe rules [ (filter filterFunc) forEach ];
+    perZone = filterFunc: pipe zones [ attrValues (filter filterFunc) forEach ];
+    forEachZone = zoneNames: func: if zoneNames=="all" then func null else forEach zoneNames (z: func zones."${z}");
+    perTraversal = filterFunc: pipe traversals [ attrValues (map (x: attrValues x.to)) flatten (filter filterFunc) forEach ];
+
+  in mkIf cfg.enable rec {
 
     assertions = flatten [
       (perTraversal (_: true) (traversal: rec {
