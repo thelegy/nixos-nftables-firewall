@@ -1,6 +1,9 @@
-args@{ config, lib, ... }:
-with lib;
-with import ./common_helpers.nix args;
+{ dependencyDagOfSubmodule, ... }:
+{ config
+, lib
+, ... }:
+with dependencyDagOfSubmodule.lib.bake lib;
+with import ./common_helpers.nix lib;
 
 let
 
@@ -56,13 +59,7 @@ let
     };
   }));
 
-  rules = pipe cfg.rules [
-    attrValues
-    (filter (x: x.enable))
-    (r: forEach cfg.insertionPoints (i: filter (x: x.insertionPoint==i) r))
-    (map (sort firewallRuleType.orderFn))
-    concatLists
-  ];
+  rules = types.dependencyDagOfSubmodule.toOrderedList cfg.rules;
 
   perRule = filterFunc: pipe rules [ (filter filterFunc) forEach ];
   perZone = filterFunc: pipe zones [ attrValues (filter filterFunc) forEach ];
@@ -142,52 +139,6 @@ let
     };
   };
 
-  firewallRuleType = with types; let
-    baseType = submodule ({ name, ... }: {
-      options = {
-        enable = mkOption {
-          type = bool;
-          default = true;
-          description = "whether the rule will be used.";
-        };
-        insertionPoint = mkOption {
-          type = str;
-          default = "default";
-        };
-        name = mkOption {
-          type = str;
-        };
-        from = mkOption {
-          type = either (enum [ "all" ]) (listOf str);
-        };
-        to = mkOption {
-          type = either (enum [ "all" ]) (listOf str);
-        };
-        allowedServices = mkOption {
-          type = listOf str;
-          default = [];
-        };
-        verdict = mkOption {
-          type = nullOr (enum [ "accept" "drop" "reject" ]);
-          default = null;
-        };
-      };
-      config.name = mkDefault name;
-    });
-    mergeCompareFunctions = fns: x: y: foldr (fn: res: if res == 0 then fn x y else res) 0 fns;
-    compareEnable = x: y: if x.enable && ! y.enable then -1 else if ! x.enable && y.enable then 1 else 0;
-    compareFrom = x: y: compareLists compare x.from y.from;
-    compareTo = x: y: compareLists compare x.to y.to;
-    compareAllowedServices = x: y: compareLists compare x.allowedServices y.allowedServices;
-    compareFn = mergeCompareFunctions [
-      compareEnable
-      compareFrom
-      compareTo
-      compareAllowedServices
-    ];
-    orderFn = x: y: (compareFn x y) < 0;
-  in baseType // { inherit orderFn; };
-
 in {
 
   options = {
@@ -207,16 +158,29 @@ in {
       type = with types; loaOf (submodule perTraversalFromConfig);
       default = {};
     };
-    networking.nftables.firewall.insertionPoints = mkOption {
-      type = with types; listOf str;
-      default = [
-        "early"
-        "default"
-        "late"
-      ];
-    };
     networking.nftables.firewall.rules = mkOption {
-      type = types.attrsOf firewallRuleType;
+      type = types.dependencyDagOfSubmodule ({ name, ... }: {
+        options = with types; {
+          name = mkOption {
+            type = str;
+          };
+          from = mkOption {
+            type = either (enum [ "all" ]) (listOf str);
+          };
+          to = mkOption {
+            type = either (enum [ "all" ]) (listOf str);
+          };
+          allowedServices = mkOption {
+            type = listOf str;
+            default = [];
+          };
+          verdict = mkOption {
+            type = nullOr (enum [ "accept" "drop" "reject" ]);
+            default = null;
+          };
+        };
+        config.name = mkDefault name;
+      });
       default = {};
     };
     networking.nftables.firewall.baseChains = mkOption {

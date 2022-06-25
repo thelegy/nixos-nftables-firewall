@@ -16,13 +16,15 @@ machineTest ({ config, ... }: {
       interfaces = [ "lo" ];
     };
     rules.loopback = {
-      insertionPoint = "early";
+      after = [ "veryEarly" ];
+      before = [ "early" ];
       from = [ "fw" ];
       to = [ "fw" ];
       verdict = "accept";
     };
     rules.ssh = {
-      insertionPoint = "early";
+      after = [ "veryEarly" ];
+      before = [ "early" ];
       from = "all";
       to = [ "fw" ];
       allowedServices = [ "ssh" ];
