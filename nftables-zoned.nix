@@ -151,6 +151,13 @@ with dependencyDagOfSubmodule.lib.bake lib;
       localZone = mkDefault true;
       interfaces = mkDefault [ "lo" ];
     };
+    networking.nftables.firewall.rules.ssh = {
+      after = [ "veryEarly" ];
+      before = [ "early" ];
+      from = "all";
+      to = [ "fw" ];
+      allowedTCPPorts = config.services.openssh.ports;
+    };
 
     networking.nftables.chains = let
       hookRule = hook: {
@@ -185,8 +192,6 @@ with dependencyDagOfSubmodule.lib.bake lib;
         "ip protocol icmp icmp type echo-request accept"
         "ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept"
       ];
-      input.ssh-failsafe = quiteEarly [ "lo" "ct" "icmp" ] [
-        "tcp dport 22 accept"
       input.generated.rules = pipe rules [
         (filter (rule: any (x: x.localZone) (lookupZones rule.to)))
         (concatMap (rule: forEach (lookupZones rule.from) (from: rule // { inherit from; })))

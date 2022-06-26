@@ -6,7 +6,6 @@ machineTest ({ config, ... }: {
 
   imports = [ flakes.self.nixosModules.full ];
 
-  networking.services.ssh = 22;
   networking.services.http = 80;
   networking.services.https = 443;
   networking.nftables.firewall = {
@@ -17,13 +16,6 @@ machineTest ({ config, ... }: {
       from = [ "fw" ];
       to = [ "fw" ];
       verdict = "accept";
-    };
-    rules.ssh = {
-      after = [ "veryEarly" ];
-      before = [ "early" ];
-      from = "all";
-      to = [ "fw" ];
-      allowedServices = [ "ssh" ];
     };
     rules.webserver = {
       from = "all";
@@ -57,7 +49,6 @@ machineTest ({ config, ... }: {
           ip6 nexthdr icmpv6 icmpv6 type echo-request accept
           ip protocol icmp icmp type echo-request accept
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
-          tcp dport 22 accept
           iifname { lo } accept
           tcp dport { 22 } accept
           tcp dport { 80, 443 } accept

@@ -11,6 +11,8 @@ machineTest ({ config, ... }: {
     zones.a.interfaces = [ "a" ];
     zones.b.interfaces = [ "b" ];
 
+    rules.ssh.enable = false;
+
     rules.forward = {
       from = [ "a" ];
       to = [ "b" ];
@@ -62,7 +64,6 @@ machineTest ({ config, ... }: {
           ip6 nexthdr icmpv6 icmpv6 type echo-request accept
           ip protocol icmp icmp type echo-request accept
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
-          tcp dport 22 accept
           tcp dport { 42 } accept
           iifname { a } tcp dport { 80 } accept
           counter drop

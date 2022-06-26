@@ -27,6 +27,7 @@ machineTest ({ config, ... }: {
           type filter hook forward priority 0; policy drop;
           ct state {established, related} accept
           ct state invalid drop
+          oifname { lo } tcp dport { 22 } accept
           counter drop
         }
 
@@ -40,7 +41,7 @@ machineTest ({ config, ... }: {
           ip6 nexthdr icmpv6 icmpv6 type echo-request accept
           ip protocol icmp icmp type echo-request accept
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
-          tcp dport 22 accept
+          tcp dport { 22 } accept
           counter drop
         }
 
