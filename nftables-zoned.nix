@@ -99,32 +99,45 @@ with dependencyDagOfSubmodule.lib.bake lib;
       (concatStringsSep sep)
     ];
 
-    zones = foldl' recursiveUpdate {} (forEach (attrValues cfg.zones) (zone: let
+    enrichZone =
+      { name
+      , interfaces ? []
+      , ingressExpression ? ""
+      , egressExpression ? ""
+      , localZone ? true
+      , parent ? null
+      , isRegularZone ? true
+      }: let
       ingressExpressionRaw = concatNonEmptyStringsSep " " [
-        (optionalString (length zone.interfaces > 0) "iifname { ${concatStringsSep ", " zone.interfaces} }")
-        zone.ingressExpression
+        (optionalString (length interfaces > 0) "iifname { ${concatStringsSep ", " interfaces} }")
+        ingressExpression
       ];
       egressExpressionRaw = concatNonEmptyStringsSep " " [
-        (optionalString (length zone.interfaces > 0) "oifname { ${concatStringsSep ", " zone.interfaces} }")
-        zone.egressExpression
+        (optionalString (length interfaces > 0) "oifname { ${concatStringsSep ", " interfaces} }")
+        egressExpression
       ];
-    in {
-      "${zone.name}" = zone // rec {
-        parent = mapNullable (parentName: zones."${parentName}") zone.parent;
-        children = filter (x: x.parent.name or "" == zone.name) (attrValues zones);
-        hasExpressions = (stringLength ingressExpressionRaw > 0) && (stringLength egressExpressionRaw > 0);
-        ingressExpression = assert hasExpressions; ingressExpressionRaw;
-        egressExpression = assert hasExpressions; egressExpressionRaw;
-      };
-    }));
+      parentZone = mapNullable (parentName: zones."${parentName}") zone.parent;
+    in rec {
+      inherit localZone;
+      parent = parentZone;
+      children = filter (x: x.parent.name or "" == name) (attrValues zones);
+      hasExpressions = (stringLength ingressExpressionRaw > 0) && (stringLength egressExpressionRaw > 0);
+      ingressExpression = assert isRegularZone -> hasExpressions; ingressExpressionRaw;
+      egressExpression = assert isRegularZone -> hasExpressions; egressExpressionRaw;
+    };
+    zones = mapAttrs (k: v: enrichZone v) cfg.zones;
+    allZone = enrichZone { name = "all"; isRegularZone = false; };
+    lookupZones = zoneNames: if zoneNames == "all" then singleton allZone else map (x: zones.${x}) zoneNames;
 
     localZone = head (filter (x: x.localZone) (attrValues zones));
 
-    rules = types.dependencyDagOfSubmodule.toOrderedList cfg.rules;
+    rules = pipe cfg.rules [
+      types.dependencyDagOfSubmodule.toOrderedList
+    ];
 
     perRule = filterFunc: pipe rules [ (filter filterFunc) forEach ];
     perZone = filterFunc: pipe zones [ attrValues (filter filterFunc) forEach ];
-    forEachZone = zoneNames: func: if zoneNames=="all" then func null else forEach zoneNames (z: func zones."${z}");
+    forEachZone = zoneNames: forEach (lookupZones zoneNames);
 
   in mkIf cfg.enable rec {
 
