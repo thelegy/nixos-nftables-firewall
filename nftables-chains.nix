@@ -62,7 +62,7 @@ in {
 
     networking.nftables.requiredChains = mkOption {
       type = types.listOf types.str;
-      default = [ "forward" "input" "output" "dnat" "snat" ];
+      default = [ "forward" "input" "output" "prerouting" "postrouting" ];
     };
 
     build.nftables-chains = mkOption {
@@ -134,7 +134,7 @@ in {
     ];
 
     ruleset = ''
-      table inet filter {
+      table inet firewall {
       ${concatMapStrings (x: "\n${x}\n") requiredChains}
       }
     '';

@@ -17,11 +17,7 @@ machineTest ({ config, ... }: {
   output = {
     expr = config.networking.nftables.ruleset;
     expected = ''
-      table inet filter {
-
-        chain dnat {
-          type nat hook prerouting priority dstnat;
-        }
+      table inet firewall {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
@@ -44,9 +40,13 @@ machineTest ({ config, ... }: {
           counter drop
         }
 
-        chain snat {
+        chain postrouting {
           type nat hook postrouting priority srcnat;
           meta protocol ip iifname { a } oifname { b } masquerade random
+        }
+
+        chain prerouting {
+          type nat hook prerouting priority dstnat;
         }
 
       }
