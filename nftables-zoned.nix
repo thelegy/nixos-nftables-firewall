@@ -137,7 +137,6 @@ with dependencyDagOfSubmodule.lib.bake lib;
 
     perRule = filterFunc: pipe rules [ (filter filterFunc) forEach ];
     perZone = filterFunc: pipe zones [ attrValues (filter filterFunc) forEach ];
-    forEachZone = zoneNames: forEach (lookupZones zoneNames);
 
   in mkIf cfg.enable rec {
 
@@ -169,7 +168,7 @@ with dependencyDagOfSubmodule.lib.bake lib;
         before = [ "early" ];
         inherit rules;
       };
-    in recursiveUpdate ({
+    in {
 
       input.hook = hookRule "type filter hook input priority 0; policy drop";
       input.lo = quiteEarly [] [
@@ -188,33 +187,20 @@ with dependencyDagOfSubmodule.lib.bake lib;
       ];
       input.ssh-failsafe = quiteEarly [ "lo" "ct" "icmp" ] [
         "tcp dport 22 accept"
+      input.generated.rules = pipe rules [
+        (filter (rule: any (x: x.localZone) (lookupZones rule.to)))
+        (concatMap (rule: forEach (lookupZones rule.from) (from: rule // { inherit from; })))
+        (map (rule: { onExpression = rule.from.ingressExpression; jump = toRuleName rule; }))
       ];
       input.drop = dropRule;
 
       prerouting.hook = hookRule "type nat hook prerouting priority dstnat;";
 
       postrouting.hook = hookRule "type nat hook postrouting priority srcnat;";
-
-      forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
-      forward.ct = quiteEarly [] [
-        "ct state {established, related} accept"
-        "ct state invalid drop"
-      ];
-      forward.drop = dropRule;
-
-    }) (mapAttrs (k: v: { generated.rules = v; }) ({
-
-      input = flatten
-        (perRule (_: true) (rule: (forEach (filter (x: zones."${x}".localZone) rule.to) (_: (forEachZone rule.from (from: {
-          onExpression = from.ingressExpression or "";
-          jump = toRuleName rule;
-        }))))));
-
-
-      postrouting = pipe rules [
+      postrouting.generated.rules = pipe rules [
         (filter (x: x.masquerade or false))
-        (concatMap (rule: forEachZone rule.from (from: rule // { inherit from; })))
-        (concatMap (rule: forEachZone rule.to (to: rule // { inherit to; })))
+        (concatMap (rule: forEach (lookupZones rule.from) (from: rule // { inherit from; })))
+        (concatMap (rule: forEach (lookupZones rule.to) (to: rule // { inherit to; })))
         (map (rule: [
           "meta protocol ip"
           rule.from.ingressExpression
@@ -223,20 +209,23 @@ with dependencyDagOfSubmodule.lib.bake lib;
         ]))
       ];
 
-      forward = flatten
-        (perRule (_: true) (rule: (forEachZone rule.from (from: (forEachZone rule.to (to: {
-          onExpression = concatNonEmptyStringsSep " " [
-            (from.ingressExpression or "")
-            (to.egressExpression or "")
-          ];
-          jump = toRuleName rule;
-        }))))));
+      forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
+      forward.ct = quiteEarly [] [
+        "ct state {established, related} accept"
+        "ct state invalid drop"
+      ];
+      forward.generated.rules = pipe rules [
+        (concatMap (rule: forEach (lookupZones rule.from) (from: rule // { inherit from; })))
+        (concatMap (rule: forEach (lookupZones rule.to) (to: rule // { inherit to; })))
+        (map (rule: { onExpression = [ rule.from.ingressExpression rule.to.egressExpression ]; jump = toRuleName rule; }))
+      ];
+      forward.drop = dropRule;
 
-    } // listToAttrs ( flatten [
+    } // (listToAttrs ( flatten [
 
       (perRule (_: true) (rule: {
         name = toRuleName rule;
-        value = let
+        value.generated.rules = let
           getAllowedPorts = services.__getAllowedPorts;
           getAllowedPortranges = services.__getAllowedPortranges;
           allowedExtraPorts = protocol: (getAllowedPorts protocol rule.allowedServices) ++ (forEach (getAllowedPortranges protocol rule.allowedServices) ({from, to}: "${toString from}-${toString to}"));
@@ -249,7 +238,7 @@ with dependencyDagOfSubmodule.lib.bake lib;
         ];
       }))
 
-    ])));
+    ]));
 
     networking.nftables.enable = true;
   };

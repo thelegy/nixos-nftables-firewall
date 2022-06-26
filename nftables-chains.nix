@@ -14,7 +14,7 @@ let
         type = types.str;
       };
       onExpression = mkOption {
-        type = types.str;
+        type = with types; either str (listOf str);
         default = "";
       };
       deps = mkOption {
@@ -103,7 +103,7 @@ in {
         if targetChainLength >= 1
         then [ r.onExpression (head targetChain) ]
         else [];
-      x = if isJump then [ r.onExpression "jump ${r.jump}" {deps = [ r.jump ];} ] else inlineRule;
+      x = if isJump then (toList r.onExpression) ++ [ "jump ${r.jump}" {deps = [ r.jump ];} ] else inlineRule;
     in if isJumpRule then x else r;
 
     chains = mapAttrs (k: v: pipe v [
