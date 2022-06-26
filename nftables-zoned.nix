@@ -224,9 +224,9 @@ with dependencyDagOfSubmodule.lib.bake lib;
       ];
       input.drop = dropRule;
 
-      dnat.hook = hookRule "type nat hook prerouting priority dstnat;";
+      prerouting.hook = hookRule "type nat hook prerouting priority dstnat;";
 
-      snat.hook = hookRule "type nat hook postrouting priority srcnat;";
+      postrouting.hook = hookRule "type nat hook postrouting priority srcnat;";
 
       forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
       forward.ct = quiteEarly [] [
@@ -243,7 +243,7 @@ with dependencyDagOfSubmodule.lib.bake lib;
           jump = toRuleName rule;
         }))))));
 
-      snat = perTraversal (x: x.fromZone.hasExpressions && x.fromZone.parent==null && x.toZone.hasExpressions && x.masquerade) (traversal:
+      postrouting = perTraversal (x: x.fromZone.hasExpressions && x.fromZone.parent==null && x.toZone.hasExpressions && x.masquerade) (traversal:
         "meta protocol ip ${traversal.fromZone.ingressExpression} ${traversal.toZone.egressExpression} masquerade random"
       );
 

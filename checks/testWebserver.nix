@@ -37,10 +37,6 @@ machineTest ({ config, ... }: {
     expected = ''
       table inet filter {
 
-        chain dnat {
-          type nat hook prerouting priority dstnat;
-        }
-
         chain forward {
           type filter hook forward priority 0; policy drop;
           ct state {established, related} accept
@@ -68,8 +64,12 @@ machineTest ({ config, ... }: {
           counter drop
         }
 
-        chain snat {
+        chain postrouting {
           type nat hook postrouting priority srcnat;
+        }
+
+        chain prerouting {
+          type nat hook prerouting priority dstnat;
         }
 
       }
