@@ -14,6 +14,8 @@ in with lib; {
 
     testWebserver = import ./testWebserver.nix lib;
 
+    testForward = import ./testForward.nix lib;
+
     testNat = import ./testNat.nix lib;
 
   };
