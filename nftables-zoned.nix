@@ -71,38 +71,13 @@ with dependencyDagOfSubmodule.lib.bake lib;
             type = nullOr (enum [ "accept" "drop" "reject" ]);
             default = null;
           };
-        };
-        config.name = mkDefault name;
-      });
-      default = {};
-    };
-
-    from = let
-      perTraversalToConfig = from: { name, ... }: {
-        options = {
-          from = mkOption {
-            type = types.str;
-          };
-          to = mkOption {
-            type = types.str;
-          };
           masquerade = mkOption {
             type = types.bool;
             default = false;
           };
         };
-        config = {
-          from = mkDefault from;
-          to = mkDefault name;
-        };
-      };
-    in mkOption {
-      type = with types; loaOf (submodule ({ name, ... }: {
-        options.to = mkOption {
-          type = with types; loaOf (submodule (perTraversalToConfig name));
-          default = {};
-        };
-      }));
+        config.name = mkDefault name;
+      });
       default = {};
     };
 
@@ -137,10 +112,6 @@ with dependencyDagOfSubmodule.lib.bake lib;
       "${zone.name}" = zone // rec {
         parent = mapNullable (parentName: zones."${parentName}") zone.parent;
         children = filter (x: x.parent.name or "" == zone.name) (attrValues zones);
-        toTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${zone.name}".to."${t.name}" or {}));
-        to = pipe toTraversals [ (map (x: {name=x.to;value=x;})) listToAttrs ];
-        fromTraversals = filter (x: x!={}) (perZone (_: true) (t: traversals."${t.name}".to."${zone.name}" or {}));
-        from = pipe fromTraversals [ (map (x: {name=x.from;value=x;})) listToAttrs ];
         hasExpressions = (stringLength ingressExpressionRaw > 0) && (stringLength egressExpressionRaw > 0);
         ingressExpression = assert hasExpressions; ingressExpressionRaw;
         egressExpression = assert hasExpressions; egressExpressionRaw;
@@ -149,32 +120,15 @@ with dependencyDagOfSubmodule.lib.bake lib;
 
     localZone = head (filter (x: x.localZone) (attrValues zones));
 
-    traversals = let
-      rawTraversals = pipe cfg.from [ attrValues (map (x: attrValues x.to)) flatten ];
-    in foldl' recursiveUpdate {} (forEach rawTraversals (traversal: {
-      "${traversal.from}".to."${traversal.to}" = traversal // rec {
-        fromZone = zones."${traversal.from}";
-        toZone = zones."${traversal.to}";
-      };
-    }));
-
     rules = types.dependencyDagOfSubmodule.toOrderedList cfg.rules;
 
     perRule = filterFunc: pipe rules [ (filter filterFunc) forEach ];
     perZone = filterFunc: pipe zones [ attrValues (filter filterFunc) forEach ];
     forEachZone = zoneNames: func: if zoneNames=="all" then func null else forEach zoneNames (z: func zones."${z}");
-    perTraversal = filterFunc: pipe traversals [ attrValues (map (x: attrValues x.to)) flatten (filter filterFunc) forEach ];
 
   in mkIf cfg.enable rec {
 
     assertions = flatten [
-      (perTraversal (_: true) (traversal: rec {
-        existingZoneNames = perZone (_: true) (zone: zone.name);
-        fromZoneExists = elem traversal.from existingZoneNames;
-        toZoneExists = elem traversal.to existingZoneNames;
-        assertion = fromZoneExists && toZoneExists;
-        message = "Can only define traversals between zones that are defined";
-      }))
       {
         assertion = (count (x: x.localZone) (attrValues zones)) == 1;
         message = "There needs to exist exactly one localZone.";
@@ -243,9 +197,18 @@ with dependencyDagOfSubmodule.lib.bake lib;
           jump = toRuleName rule;
         }))))));
 
-      postrouting = perTraversal (x: x.fromZone.hasExpressions && x.fromZone.parent==null && x.toZone.hasExpressions && x.masquerade) (traversal:
-        "meta protocol ip ${traversal.fromZone.ingressExpression} ${traversal.toZone.egressExpression} masquerade random"
-      );
+
+      postrouting = pipe rules [
+        (filter (x: x.masquerade or false))
+        (concatMap (rule: forEachZone rule.from (from: rule // { inherit from; })))
+        (concatMap (rule: forEachZone rule.to (to: rule // { inherit to; })))
+        (map (rule: [
+          "meta protocol ip"
+          rule.from.ingressExpression
+          rule.to.egressExpression
+          "masquerade random"
+        ]))
+      ];
 
       forward = flatten
         (perRule (_: true) (rule: (forEachZone rule.from (from: (forEachZone rule.to (to: {

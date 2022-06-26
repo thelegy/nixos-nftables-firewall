@@ -11,7 +11,11 @@ machineTest ({ config, ... }: {
     zones.a.interfaces = [ "a" ];
     zones.b.interfaces = [ "b" ];
 
-    from.a.to.b.masquerade = true;
+    rules.nat = {
+      from = [ "a" ];
+      to = [ "b" ];
+      masquerade = true;
+    };
   };
 
   output = {
