@@ -17,7 +17,7 @@ machineTest ({ config, ... }: {
   output = {
     expr = config.networking.nftables.ruleset;
     expected = ''
-      table inet filter {
+      table inet firewall {
 
         chain forward {
           type filter hook forward priority 0; policy drop;

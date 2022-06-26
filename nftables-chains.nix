@@ -134,7 +134,7 @@ in {
     ];
 
     ruleset = ''
-      table inet filter {
+      table inet firewall {
       ${concatMapStrings (x: "\n${x}\n") requiredChains}
       }
     '';

@@ -29,7 +29,7 @@ machineTest ({ config, ... }: {
   output = {
     expr = config.build.nftables-chains.ruleset;
     expected = ''
-      table inet filter {
+      table inet firewall {
 
         chain input {
           iifname inlinable accept
