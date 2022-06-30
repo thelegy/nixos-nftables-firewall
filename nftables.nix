@@ -47,7 +47,7 @@ in
 
           chain forward {
             type filter hook forward priority 0;
-            accept
+            counter drop
           }
         }
       '';
