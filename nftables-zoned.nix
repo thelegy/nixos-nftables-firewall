@@ -37,9 +37,7 @@ with dependencyDagOfSubmodule.lib.bake lib;
             default = null;
           };
         };
-        config = {
-          name = mkDefault name;
-        };
+        config.name = mkDefault name;
       }));
     };
 
