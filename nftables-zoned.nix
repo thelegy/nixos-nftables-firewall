@@ -160,13 +160,13 @@ with dependencyDagOfSubmodule.lib.bake lib;
 
     networking.nftables.chains = let
       hookRule = hook: {
-        after = [ "start" ];
-        before = [ "veryEarly" ];
+        after = mkForce [ "start" ];
+        before = mkForce [ "veryEarly" ];
         rules = singleton hook;
       };
       dropRule = {
-        after = [ "veryLate" ];
-        before = [ "end" ];
+        after = mkForce [ "veryLate" ];
+        before = mkForce [ "end" ];
         rules = singleton "counter drop";
       };
     in {
