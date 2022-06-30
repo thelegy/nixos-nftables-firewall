@@ -11,8 +11,7 @@ machineTest ({ config, ... }: {
   networking.nftables.firewall = {
     enable = true;
     rules.loopback = {
-      after = [ "veryEarly" ];
-      before = [ "early" ];
+      early = true;
       from = [ "fw" ];
       to = [ "fw" ];
       verdict = "accept";

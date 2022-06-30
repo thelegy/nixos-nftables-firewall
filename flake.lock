@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1656252155,
-        "narHash": "sha256-1ioL6EIiQew0FoQAxYMHfLpVTst2TOmCRoRCI6Wd/+M=",
+        "lastModified": 1656598003,
+        "narHash": "sha256-aCWV4sJ44AXPguqmmYYDXjO1jq18eEpQiQjIKancaMg=",
         "owner": "thelegy",
         "repo": "nix-dependencyDagOfSubmodule",
-        "rev": "356fadcd216610a08cd11c7178c36b694639103d",
+        "rev": "028779c4c97e293df4f95ad877fed402cbda7f7a",
         "type": "github"
       },
       "original": {

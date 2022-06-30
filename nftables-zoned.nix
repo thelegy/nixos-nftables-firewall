@@ -152,8 +152,7 @@ with dependencyDagOfSubmodule.lib.bake lib;
       interfaces = mkDefault [ "lo" ];
     };
     networking.nftables.firewall.rules.ssh = {
-      after = [ "veryEarly" ];
-      before = [ "early" ];
+      early = true;
       from = "all";
       to = [ "fw" ];
       allowedTCPPorts = config.services.openssh.ports;
@@ -162,30 +161,30 @@ with dependencyDagOfSubmodule.lib.bake lib;
     networking.nftables.chains = let
       hookRule = hook: {
         after = [ "start" ];
-        before = [ "early" "veryEarly" ];
+        before = [ "veryEarly" ];
         rules = singleton hook;
       };
       dropRule = {
-        after = [ "late" "veryLate" ];
+        after = [ "veryLate" ];
         before = [ "end" ];
         rules = singleton "counter drop";
-      };
-      quiteEarly = extraAfter: rules: {
-        after = [ "veryEarly" ] ++ extraAfter;
-        before = [ "early" ];
-        inherit rules;
       };
     in {
 
       input.hook = hookRule "type filter hook input priority 0; policy drop";
-      input.lo = quiteEarly [] [
+      input.lo.early = true;
+      input.lo.rules = [
         "iifname lo accept"
       ];
-      input.ct = quiteEarly [ "lo" ] [
+      input.ct.early = true;
+      input.ct.after = [ "lo" ];
+      input.ct.rules = [
         "ct state {established, related} accept"
         "ct state invalid drop"
       ];
-      input.icmp = quiteEarly [ "lo" "ct" ] [
+      input.icmp.early = true;
+      input.icmp.after = [ "ct" ];
+      input.icmp.rules = [
         "ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept"
         "ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept"
         "ip6 nexthdr icmpv6 icmpv6 type echo-request accept"
@@ -215,7 +214,8 @@ with dependencyDagOfSubmodule.lib.bake lib;
       ];
 
       forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
-      forward.ct = quiteEarly [] [
+      forward.ct.early = true;
+      forward.ct.rules = [
         "ct state {established, related} accept"
         "ct state invalid drop"
       ];
