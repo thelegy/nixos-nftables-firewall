@@ -73,6 +73,10 @@ with dependencyDagOfSubmodule.lib.bake lib;
             type = types.bool;
             default = false;
           };
+          extraLines = mkOption {
+            type = types.listOf config.build.nftables-ruleType;
+            default = [];
+          };
         };
         config.name = mkDefault name;
       });
@@ -149,11 +153,42 @@ with dependencyDagOfSubmodule.lib.bake lib;
       localZone = mkDefault true;
       interfaces = mkDefault [ "lo" ];
     };
+
+    networking.nftables.firewall.rules.lo = {
+      early = true;
+      from = [ "fw" ];
+      to = [ "fw" ];
+      verdict = "accept";
+    };
+    networking.nftables.firewall.rules.ct = {
+      early = true;
+      after = [ "lo" ];
+      from = "all";
+      to = "all";
+      extraLines = [
+        "ct state {established, related} accept"
+        "ct state invalid drop"
+      ];
+    };
     networking.nftables.firewall.rules.ssh = {
       early = true;
+      after = [ "lo" ];
       from = "all";
       to = [ "fw" ];
       allowedTCPPorts = config.services.openssh.ports;
+    };
+    networking.nftables.firewall.rules.icmp = {
+      early = true;
+      after = [ "ssh" ];
+      from = "all";
+      to = [ "fw" ];
+      extraLines = [
+        "ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept"
+        "ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept"
+        "ip6 nexthdr icmpv6 icmpv6 type echo-request accept"
+        "ip protocol icmp icmp type echo-request accept"
+        "ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept"
+      ];
     };
 
     networking.nftables.chains = let
@@ -170,25 +205,6 @@ with dependencyDagOfSubmodule.lib.bake lib;
     in {
 
       input.hook = hookRule "type filter hook input priority 0; policy drop";
-      input.lo.early = true;
-      input.lo.rules = [
-        "iifname lo accept"
-      ];
-      input.ct.early = true;
-      input.ct.after = [ "lo" ];
-      input.ct.rules = [
-        "ct state {established, related} accept"
-        "ct state invalid drop"
-      ];
-      input.icmp.early = true;
-      input.icmp.after = [ "ct" ];
-      input.icmp.rules = [
-        "ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept"
-        "ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept"
-        "ip6 nexthdr icmpv6 icmpv6 type echo-request accept"
-        "ip protocol icmp icmp type echo-request accept"
-        "ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept"
-      ];
       input.generated.rules = pipe rules [
         (filter (rule: any (x: x.localZone) (lookupZones rule.to)))
         (concatMap (rule: forEach (lookupZones rule.from) (from: rule // { inherit from; })))
@@ -212,11 +228,6 @@ with dependencyDagOfSubmodule.lib.bake lib;
       ];
 
       forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
-      forward.ct.early = true;
-      forward.ct.rules = [
-        "ct state {established, related} accept"
-        "ct state invalid drop"
-      ];
       forward.generated.rules = pipe rules [
         (concatMap (rule: forEach (lookupZones rule.from) (from: rule // { inherit from; })))
         (concatMap (rule: forEach (lookupZones rule.to) (to: rule // { inherit to; })))
@@ -238,7 +249,7 @@ with dependencyDagOfSubmodule.lib.bake lib;
           (optionalString (allowedTCPPorts!=[]) "tcp dport ${toPortList allowedTCPPorts} accept")
           (optionalString (allowedUDPPorts!=[]) "udp dport ${toPortList allowedUDPPorts} accept")
           (optionalString (rule.verdict!=null) rule.verdict)
-        ];
+        ] ++ rule.extraLines;
       }))
 
     ]));

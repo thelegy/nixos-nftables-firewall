@@ -65,6 +65,12 @@ in {
       default = [ "forward" "input" "output" "prerouting" "postrouting" ];
     };
 
+    build.nftables-ruleType = mkOption {
+      type = types.anything;
+      internal = true;
+      default = ruleType;
+    };
+
     build.nftables-chains = mkOption {
       type = types.anything;
       internal = true;
