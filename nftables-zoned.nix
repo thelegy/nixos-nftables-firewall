@@ -65,6 +65,16 @@ with dependencyDagOfSubmodule.lib.bake lib;
             type = listOf int;
             default = [];
           };
+          allowedTCPPortRanges = mkOption {
+            type = listOf (attrsOf port);
+            default = [];
+            example = [ { from = 1337; to = 1347; } ];
+          };
+          allowedUDPPortRanges = mkOption {
+            type = listOf (attrsOf port);
+            default = [];
+            example = [ { from = 55000; to = 56000; } ];
+          };
           verdict = mkOption {
             type = nullOr (enum [ "accept" "drop" "reject" ]);
             default = null;
@@ -240,11 +250,12 @@ with dependencyDagOfSubmodule.lib.bake lib;
       (perRule (_: true) (rule: {
         name = toRuleName rule;
         value.generated.rules = let
+          formatPortRange = { from, to }: "${toString from}-${toString to}";
           getAllowedPorts = services.__getAllowedPorts;
           getAllowedPortranges = services.__getAllowedPortranges;
-          allowedExtraPorts = protocol: (getAllowedPorts protocol rule.allowedServices) ++ (forEach (getAllowedPortranges protocol rule.allowedServices) ({from, to}: "${toString from}-${toString to}"));
-          allowedTCPPorts = rule.allowedTCPPorts ++ (allowedExtraPorts "tcp");
-          allowedUDPPorts = rule.allowedUDPPorts ++ (allowedExtraPorts "udp");
+          allowedExtraPorts = protocol: getAllowedPorts protocol rule.allowedServices ++ forEach (getAllowedPortranges protocol rule.allowedServices) formatPortRange;
+          allowedTCPPorts = rule.allowedTCPPorts ++ forEach rule.allowedTCPPortRanges formatPortRange ++ allowedExtraPorts "tcp";
+          allowedUDPPorts = rule.allowedUDPPorts ++ forEach rule.allowedUDPPortRanges formatPortRange ++ allowedExtraPorts "udp";
         in [
           (optionalString (allowedTCPPorts!=[]) "tcp dport ${toPortList allowedTCPPorts} accept")
           (optionalString (allowedUDPPorts!=[]) "udp dport ${toPortList allowedUDPPorts} accept")
