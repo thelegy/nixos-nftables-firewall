@@ -18,5 +18,7 @@ in with lib; {
 
     testNat = import ./testNat.nix lib;
 
+    testPortRules = import ./testPortRules.nix lib;
+
   };
 }

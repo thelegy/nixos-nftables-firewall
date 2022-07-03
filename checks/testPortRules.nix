@@ -1,0 +1,91 @@
+{ machineTest
+, flakes
+, ... }:
+
+machineTest ({ config, ... }: {
+
+  imports = [ flakes.self.nixosModules.full ];
+
+  networking.nftables.firewall = {
+    enable = true;
+    rules.nose = {
+      from = "all";
+      to = [ "fw" ];
+      allowedTCPPorts = [ 555 ];
+    };
+    rules.range = {
+      from = "all";
+      to = [ "fw" ];
+      allowedUDPPortRanges = [ { from = 60000; to = 62000; } ];
+    };
+    rules.multiple = {
+      from = "all";
+      to = [ "fw" ];
+      allowedTCPPortRanges = [
+        { from = 42000; to = 42004; }
+        { from = 42005; to = 62009; }
+      ];
+      allowedUDPPorts = [ 42 1337 ];
+    };
+  };
+
+  output = {
+    expr = config.networking.nftables.ruleset;
+    expected = ''
+      table inet firewall {
+      
+        chain forward {
+          type filter hook forward priority 0; policy drop;
+          iifname { lo } oifname { lo } accept
+          jump rule-ct
+          oifname { lo } tcp dport { 22 } accept
+          oifname { lo } jump rule-icmp
+          oifname { lo } jump rule-multiple
+          oifname { lo } tcp dport { 555 } accept
+          oifname { lo } udp dport { 60000-62000 } accept
+          counter drop
+        }
+      
+        chain input {
+          type filter hook input priority 0; policy drop
+          iifname { lo } accept
+          jump rule-ct
+          tcp dport { 22 } accept
+          jump rule-icmp
+          jump rule-multiple
+          tcp dport { 555 } accept
+          udp dport { 60000-62000 } accept
+          counter drop
+        }
+      
+        chain postrouting {
+          type nat hook postrouting priority srcnat;
+        }
+      
+        chain prerouting {
+          type nat hook prerouting priority dstnat;
+        }
+      
+        chain rule-ct {
+          ct state {established, related} accept
+          ct state invalid drop
+        }
+      
+        chain rule-icmp {
+          ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
+          ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept
+          ip6 nexthdr icmpv6 icmpv6 type echo-request accept
+          ip protocol icmp icmp type echo-request accept
+          ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
+        }
+      
+        chain rule-multiple {
+          tcp dport { 42000-42004, 42005-62009 } accept
+          udp dport { 42, 1337 } accept
+        }
+      
+      }
+    '';
+  };
+
+})
