@@ -141,8 +141,9 @@ in {
       parent = parentZone;
       children = filter (x: x.parent.name or "" == name) (attrValues zones);
       hasExpressions = (stringLength ingressExpressionRaw > 0) && (stringLength egressExpressionRaw > 0);
-      ingressExpression = assert isRegularZone -> hasExpressions; ingressExpressionRaw;
-      egressExpression = assert isRegularZone -> hasExpressions; egressExpressionRaw;
+      disableForward = localZone && isRegularZone && !hasExpressions;
+      ingressExpression = assert localZone || (isRegularZone -> hasExpressions); ingressExpressionRaw;
+      egressExpression = assert localZone || (isRegularZone -> hasExpressions); egressExpressionRaw;
     };
     zones = mapAttrs (k: v: enrichZone v) cfg.zones;
     allZone = enrichZone { name = "all"; isRegularZone = false; };
@@ -248,6 +249,7 @@ in {
       forward.generated.rules = pipe rules [
         (concatMap (rule: forEach (lookupZones rule.from) (from: rule // { inherit from; })))
         (concatMap (rule: forEach (lookupZones rule.to) (to: rule // { inherit to; })))
+        (filter (rule: !(rule.from.disableForward || rule.to.disableForward)))
         (map (rule: { onExpression = [ rule.from.ingressExpression rule.to.egressExpression ]; jump = toRuleName rule; }))
       ];
       forward.drop = dropRule;
