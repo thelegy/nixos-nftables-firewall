@@ -45,9 +45,7 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          iifname { lo } oifname { lo } accept
           jump rule-ct
-          oifname { lo } jump rule-icmp
           iifname { a } oifname { b } tcp dport { 22 } accept
           oifname { b } tcp dport { 25 } accept
           tcp dport { 42 } accept

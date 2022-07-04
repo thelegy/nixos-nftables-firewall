@@ -169,12 +169,14 @@ in {
 
     networking.nftables.firewall.zones.fw = {
       localZone = mkDefault true;
+    };
+    networking.nftables.firewall.zones.lo = {
       interfaces = mkDefault [ "lo" ];
     };
 
     networking.nftables.firewall.rules.lo = {
       early = true;
-      from = [ "fw" ];
+      from = [ "lo" ];
       to = [ "fw" ];
       verdict = "accept";
     };

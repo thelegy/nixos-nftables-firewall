@@ -24,11 +24,7 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          iifname { lo } oifname { lo } accept
           jump rule-ct
-          oifname { lo } tcp dport { 22 } accept
-          oifname { lo } jump rule-icmp
-          oifname { lo } tcp dport { 80, 443 } accept
           counter drop
         }
 
