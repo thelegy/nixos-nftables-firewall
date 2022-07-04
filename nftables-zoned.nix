@@ -189,7 +189,7 @@ in {
     };
     networking.nftables.firewall.rules.ssh = {
       early = true;
-      after = [ "lo" ];
+      after = [ "lo" "ct" ];
       from = "all";
       to = [ "fw" ];
       allowedTCPPorts = config.services.openssh.ports;
