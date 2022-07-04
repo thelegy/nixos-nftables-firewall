@@ -4,7 +4,14 @@
 , ... }:
 with dependencyDagOfSubmodule.lib.bake lib;
 
-{
+let
+  portRange = types.submodule {
+    options = {
+      from = mkOption { type = types.port; };
+      to = mkOption { type = types.port; };
+    };
+  };
+in {
 
   options.networking.nftables.firewall = {
 
@@ -66,12 +73,12 @@ with dependencyDagOfSubmodule.lib.bake lib;
             default = [];
           };
           allowedTCPPortRanges = mkOption {
-            type = listOf (attrsOf port);
+            type = listOf portRange;
             default = [];
             example = [ { from = 1337; to = 1347; } ];
           };
           allowedUDPPortRanges = mkOption {
-            type = listOf (attrsOf port);
+            type = listOf portRange;
             default = [];
             example = [ { from = 55000; to = 56000; } ];
           };
