@@ -18,7 +18,7 @@ in {
     enable = mkEnableOption "the zoned nftables based firewall.";
 
     zones = mkOption {
-      type = with types; loaOf (submodule ({ name, ... }: {
+      type = types.dependencyDagOfSubmodule ({ name, ... }: {
         options = {
           name = mkOption {
             type = types.str;
@@ -45,7 +45,7 @@ in {
           };
         };
         config.name = mkDefault name;
-      }));
+      });
     };
 
     rules = mkOption {
@@ -123,9 +123,15 @@ in {
       , interfaces ? []
       , ingressExpression ? ""
       , egressExpression ? ""
-      , localZone ? true
+      , localZone
       , parent ? null
       , isRegularZone ? true
+      # from dependencyDagOfSubmodule:
+      , enable
+      , early
+      , late
+      , before
+      , after
       }: let
       ingressExpressionRaw = concatNonEmptyStringsSep " " [
         (optionalString (length interfaces > 0) "iifname { ${concatStringsSep ", " interfaces} }")
@@ -145,8 +151,11 @@ in {
       ingressExpression = assert localZone || (isRegularZone -> hasExpressions); ingressExpressionRaw;
       egressExpression = assert localZone || (isRegularZone -> hasExpressions); egressExpressionRaw;
     };
+
     zones = mapAttrs (k: v: enrichZone v) cfg.zones;
-    allZone = enrichZone { name = "all"; isRegularZone = false; };
+    sortedZones = types.dependencyDagOfSubmodule.toOrderedList zones;
+
+    allZone = enrichZone { name = "all"; isRegularZone = false; localZone = true; enable = true; early = false; late = false; before = []; after = []; };
     lookupZones = zoneNames: if zoneNames == "all" then singleton allZone else map (x: zones.${x}) zoneNames;
 
     localZone = head (filter (x: x.localZone) (attrValues zones));
