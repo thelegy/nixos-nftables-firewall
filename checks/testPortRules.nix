@@ -36,17 +36,17 @@ machineTest ({ config, ... }: {
       
         chain forward {
           type filter hook forward priority 0; policy drop;
-          jump rule-ct
+          goto rule-ct
           counter drop
         }
       
         chain input {
           type filter hook input priority 0; policy drop
           iifname { lo } accept
-          jump rule-ct
+          goto rule-ct
           tcp dport { 22 } accept
-          jump rule-icmp
-          jump rule-multiple
+          goto rule-icmp
+          goto rule-multiple
           tcp dport { 555 } accept
           udp dport { 60000-62000 } accept
           counter drop

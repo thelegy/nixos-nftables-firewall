@@ -8,9 +8,9 @@ let
 
   listRuleType = types.listOf types.anything;
   literalRuleType = types.str;
-  jumpRuleType = types.submodule ({ ... }: {
+  gotoRuleType = types.submodule ({ ... }: {
     options = {
-      jump = mkOption {
+      goto = mkOption {
         type = types.str;
       };
       onExpression = mkOption {
@@ -39,8 +39,8 @@ let
 
   noRuleType = with types; addCheck anything (x: traceSeqN 10 x false);
 
-  #ruleType = types.oneOf [ listRuleType literalRuleType jumpRuleType simpleRuleType noRuleType ];
-  ruleType = types.oneOf [ listRuleType literalRuleType jumpRuleType noRuleType ];
+  #ruleType = types.oneOf [ listRuleType literalRuleType gotoRuleType simpleRuleType noRuleType ];
+  ruleType = types.oneOf [ listRuleType literalRuleType gotoRuleType noRuleType ];
 
   chainType = types.dependencyDagOfSubmodule {
     options = {
@@ -99,22 +99,22 @@ in {
     #  in assert depth < 50; if newCheck == [] then newCheck else check ++ go (depth+1) newAcc newCheck;
     #in go 0 [];
 
-    processJumpRule = r: let
-      isJumpRule = check jumpRuleType r;
-      isRequired = elem r.jump config.networking.nftables.requiredChains;
-      targetChain = chains.${r.jump};
+    processGotoRule = r: let
+      isGotoRule = check gotoRuleType r;
+      isRequired = elem r.goto config.networking.nftables.requiredChains;
+      targetChain = chains.${r.goto};
       targetChainLength = length targetChain;
-      isJump = isRequired || targetChainLength > 1;
+      isGoto = isRequired || targetChainLength > 1;
       inlineRule =
         if targetChainLength >= 1
         then [ r.onExpression (head targetChain) ]
         else [];
-      x = if isJump then (toList r.onExpression) ++ [ "jump ${r.jump}" {deps = [ r.jump ];} ] else inlineRule;
-    in if isJumpRule then x else r;
+      x = if isGoto then (toList r.onExpression) ++ [ "goto ${r.goto}" {deps = [ r.goto ];} ] else inlineRule;
+    in if isGotoRule then x else r;
 
     chains = mapAttrs (k: v: pipe v [
       #(map processSimpleRule)
-      (map processJumpRule)
+      (map processGotoRule)
       (map (x: if isList x then filter (y: y != "") (flatten x) else x))
       (filter (x: x != []))
     ]) rawChains;

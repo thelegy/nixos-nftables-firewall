@@ -45,7 +45,7 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          jump rule-ct
+          goto rule-ct
           iifname { a } oifname { b } tcp dport { 22 } accept
           oifname { b } tcp dport { 25 } accept
           tcp dport { 42 } accept
@@ -56,8 +56,8 @@ machineTest ({ config, ... }: {
         chain input {
           type filter hook input priority 0; policy drop
           iifname { lo } accept
-          jump rule-ct
-          jump rule-icmp
+          goto rule-ct
+          goto rule-icmp
           tcp dport { 42 } accept
           iifname { a } tcp dport { 80 } accept
           counter drop

@@ -222,7 +222,7 @@ in {
       input.generated.rules = pipe rules [
         (filter (rule: any (x: x.localZone) (lookupZones rule.to)))
         (concatMap (rule: forEach (lookupZones rule.from) (from: rule // { inherit from; })))
-        (map (rule: { onExpression = rule.from.ingressExpression; jump = toRuleName rule; }))
+        (map (rule: { onExpression = rule.from.ingressExpression; goto = toRuleName rule; }))
       ];
       input.drop = dropRule;
 
@@ -246,7 +246,7 @@ in {
         (concatMap (rule: forEach (lookupZones rule.from) (from: rule // { inherit from; })))
         (concatMap (rule: forEach (lookupZones rule.to) (to: rule // { inherit to; })))
         (filter (rule: !(rule.from.disableForward || rule.to.disableForward)))
-        (map (rule: { onExpression = [ rule.from.ingressExpression rule.to.egressExpression ]; jump = toRuleName rule; }))
+        (map (rule: { onExpression = [ rule.from.ingressExpression rule.to.egressExpression ]; goto = toRuleName rule; }))
       ];
       forward.drop = dropRule;
 

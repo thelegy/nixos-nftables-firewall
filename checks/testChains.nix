@@ -8,15 +8,15 @@ machineTest ({ config, ... }: {
 
   networking.nftables.chains = {
     input.a.rules = [
-      { onExpression = "iifname empty"; jump = "empty"; }
-      { onExpression = "iifname inlinable"; jump = "inlinable"; }
-      { onExpression = "iifname multiple"; jump = "multiple"; }
-      #{ onExpression = "iifname indirect1"; jump = "indirect1"; }
+      { onExpression = "iifname empty"; goto = "empty"; }
+      { onExpression = "iifname inlinable"; goto = "inlinable"; }
+      { onExpression = "iifname multiple"; goto = "multiple"; }
+      #{ onExpression = "iifname indirect1"; goto = "indirect1"; }
     ];
 
     empty.a.rules = [ ];
     inlinable.a.rules = [ "accept" ];
-    #indirect1.a.rules = [ { line = "jump indirect2"; deps = [ "indirect2" ]; } ];
+    #indirect1.a.rules = [ { line = "goto indirect2"; deps = [ "indirect2" ]; } ];
     #indirect2.a.rules = [ "accept" ];
     multiple.a.rules = [
       "tcp dport 22 accept"
@@ -33,7 +33,7 @@ machineTest ({ config, ... }: {
 
         chain input {
           iifname inlinable accept
-          iifname multiple jump multiple
+          iifname multiple goto multiple
         }
 
         chain multiple {
