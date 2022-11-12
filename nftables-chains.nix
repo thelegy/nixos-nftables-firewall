@@ -8,19 +8,29 @@ let
 
   listRuleType = types.listOf types.anything;
   literalRuleType = types.str;
-  gotoRuleType = types.submodule ({ ... }: {
+  linkRuleType = types.submodule ({ config, ... }: {
     options = {
       goto = mkOption {
-        type = types.str;
+        type = with types; nullOr str;
+        default = null;
+      };
+      jump = mkOption {
+        type = with types; nullOr str;
+        default = null;
+      };
+      linkType = mkOption {
+        type = with types; nullOr (enum ["goto" "jump"]);
       };
       onExpression = mkOption {
         type = with types; either str (listOf str);
         default = "";
       };
-      deps = mkOption {
-        type = with types; listOf str;
-        default = [];
-      };
+    };
+    config = let
+      isGoto = ! isNull config.goto;
+      isJump = ! isNull config.jump;
+    in {
+      linkType = if isGoto && isJump then "both" else if isGoto then "goto" else if isJump then "jump" else null ;
     };
   });
   #simpleRuleType = types.submodule ({ ... }: {
@@ -39,8 +49,8 @@ let
 
   noRuleType = with types; addCheck anything (x: traceSeqN 10 x false);
 
-  #ruleType = types.oneOf [ listRuleType literalRuleType gotoRuleType simpleRuleType noRuleType ];
-  ruleType = types.oneOf [ listRuleType literalRuleType gotoRuleType noRuleType ];
+  #ruleType = types.oneOf [ listRuleType literalRuleType linkRuleType simpleRuleType noRuleType ];
+  ruleType = types.oneOf [ listRuleType literalRuleType linkRuleType noRuleType ];
 
   chainType = types.dependencyDagOfSubmodule {
     options = {
@@ -99,22 +109,25 @@ in {
     #  in assert depth < 50; if newCheck == [] then newCheck else check ++ go (depth+1) newAcc newCheck;
     #in go 0 [];
 
-    processGotoRule = r: let
-      isGotoRule = check gotoRuleType r;
+    processLinkRule = r: let
+      isLinkRule = check linkRuleType r;
       isRequired = elem r.goto config.networking.nftables.requiredChains;
-      targetChain = chains.${r.goto};
+      targetChain = chains.${r.${r.linkType}};
       targetChainLength = length targetChain;
-      isGoto = isRequired || targetChainLength > 1;
+      isGoto = r.linkType == "goto" && (isRequired || targetChainLength > 1);
+      isJump = r.linkType == "jump" && (isRequired || targetChainLength >= 1);
       inlineRule =
         if targetChainLength >= 1
         then [ r.onExpression (head targetChain) ]
         else [];
-      x = if isGoto then (toList r.onExpression) ++ [ "goto ${r.goto}" {deps = [ r.goto ];} ] else inlineRule;
-    in if isGotoRule then x else r;
+      gotoRule = if isGoto then (toList r.onExpression) ++ [ "goto ${r.goto}" {deps = [ r.goto ];} ] else inlineRule;
+      jumpRule = if isJump then (toList r.onExpression) ++ [ "jump ${r.jump}" {deps = [ r.jump ];} ] else inlineRule;
+      x = if r.linkType == "goto" then gotoRule else jumpRule;
+    in if isLinkRule then x else r;
 
     chains = mapAttrs (k: v: pipe v [
       #(map processSimpleRule)
-      (map processGotoRule)
+      (map processLinkRule)
       (map (x: if isList x then filter (y: y != "") (flatten x) else x))
       (filter (x: x != []))
     ]) rawChains;
