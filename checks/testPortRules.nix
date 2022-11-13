@@ -33,13 +33,13 @@ machineTest ({ config, ... }: {
     expr = config.networking.nftables.ruleset;
     expected = ''
       table inet firewall {
-      
+
         chain forward {
           type filter hook forward priority 0; policy drop;
           goto rule-ct
           counter drop
         }
-      
+
         chain input {
           type filter hook input priority 0; policy drop
           iifname { lo } accept
@@ -51,31 +51,31 @@ machineTest ({ config, ... }: {
           udp dport { 60000-62000 } accept
           counter drop
         }
-      
+
         chain postrouting {
           type nat hook postrouting priority srcnat;
         }
-      
+
         chain prerouting {
           type nat hook prerouting priority dstnat;
         }
-      
+
         chain rule-ct {
           ct state {established, related} accept
           ct state invalid drop
         }
-      
+
         chain rule-icmp {
           ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
           ip protocol icmp icmp type { echo-request, router-advertisement } accept
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
         }
-      
+
         chain rule-multiple {
           tcp dport { 42000-42004, 42005-62009 } accept
           udp dport { 42, 1337 } accept
         }
-      
+
       }
     '';
   };
