@@ -45,14 +45,15 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          iifname { a } jump zone-a
-          jump zone-all
+          oifname { b } jump to-b
+          jump to-all
           counter drop
         }
 
         chain input {
           type filter hook input priority 0; policy drop
-          jump zone-all
+          jump to-fw
+          jump to-all
           counter drop
         }
 
@@ -75,16 +76,19 @@ machineTest ({ config, ... }: {
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
         }
 
-        chain zone-a {
-          oifname { b } tcp dport { 22 } accept
-          tcp dport { 80 } accept
+        chain to-all {
+          goto rule-ct
+          tcp dport { 42 } accept
+          iifname { a } tcp dport { 80 } accept
         }
 
-        chain zone-all {
-          goto rule-ct
+        chain to-b {
+          iifname { a } tcp dport { 22 } accept
+          tcp dport { 25 } accept
+        }
+
+        chain to-fw {
           goto rule-icmp
-          oifname { b } tcp dport { 25 } accept
-          tcp dport { 42 } accept
         }
 
       }

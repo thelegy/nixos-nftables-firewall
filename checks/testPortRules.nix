@@ -36,13 +36,14 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          jump zone-all
+          jump to-all
           counter drop
         }
 
         chain input {
           type filter hook input priority 0; policy drop
-          jump zone-all
+          jump to-fw
+          jump to-all
           counter drop
         }
 
@@ -70,8 +71,11 @@ machineTest ({ config, ... }: {
           udp dport { 42, 1337 } accept
         }
 
-        chain zone-all {
+        chain to-all {
           goto rule-ct
+        }
+
+        chain to-fw {
           tcp dport { 22 } accept
           goto rule-icmp
           goto rule-multiple

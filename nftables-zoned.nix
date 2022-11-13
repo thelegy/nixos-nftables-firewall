@@ -103,7 +103,7 @@ in {
     toPortList = ports: assert length ports > 0; "{ ${concatStringsSep ", " (map toString ports)} }";
 
     toRuleName = rule: "rule-${rule.name}";
-    toZoneName = zone: "zone-${zone.name}";
+    toTraverseToName = to: "to-${to.name}";
 
     cfg = config.networking.nftables.firewall;
 
@@ -211,8 +211,8 @@ in {
 
       input.hook = hookRule "type filter hook input priority 0; policy drop";
       input.generated.rules = flatten [
-        (perZone (z: z.localZone) (zone: { jump = toZoneName zone; }))
-        { jump = toZoneName allZone; }
+        (perZone (z: z.localZone) (zone: { jump = toTraverseToName zone; }))
+        { jump = toTraverseToName allZone; }
       ];
       input.drop = dropRule;
 
@@ -233,24 +233,24 @@ in {
 
       forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
       forward.generated.rules = flatten [
-        (perZone (_: true) (zone: { onExpression = zone.ingressExpression; jump = toZoneName zone; }))
-        { jump = toZoneName allZone; }
+        (perZone (z: ! z.localZone) (zone: { onExpression = zone.egressExpression; jump = toTraverseToName zone; }))
+        { jump = toTraverseToName allZone; }
       ];
       forward.drop = dropRule;
 
     } // (listToAttrs (flatten [
 
       (perZone (_: true) (zone: {
-        name = toZoneName zone;
-        value.generated.rules = flatten (perRule (r: isList r.from && elem zone.name r.from) (rule:
-          (forEach (lookupZones rule.to) (to: {onExpression = to.egressExpression; goto = toRuleName rule;}))
+        name = toTraverseToName zone;
+        value.generated.rules = flatten (perRule (r: isList r.to && elem zone.name r.to) (rule:
+          (forEach (lookupZones rule.from) (from: {onExpression = from.ingressExpression; goto = toRuleName rule;}))
         ));
       }))
 
       {
-        name = toZoneName allZone;
-        value.generated.rules = flatten (perRule (r: r.from == "all") (rule:
-          (forEach (lookupZones rule.to) (to: {onExpression = to.egressExpression; goto = toRuleName rule;}))
+        name = toTraverseToName allZone;
+        value.generated.rules = flatten (perRule (r: r.to == "all") (rule:
+          (forEach (lookupZones rule.from) (from: {onExpression = from.ingressExpression; goto = toRuleName rule;}))
         ));
       }
 
