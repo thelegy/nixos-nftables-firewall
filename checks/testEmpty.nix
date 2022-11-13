@@ -17,16 +17,14 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          goto rule-ct
+          iifname { lo } jump zone-lo
+          jump zone-all
           counter drop
         }
 
         chain input {
           type filter hook input priority 0; policy drop
-          iifname { lo } accept
-          goto rule-ct
-          tcp dport { 22 } accept
-          goto rule-icmp
+          jump zone-all
           counter drop
         }
 
@@ -47,6 +45,16 @@ machineTest ({ config, ... }: {
           ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
           ip protocol icmp icmp type { echo-request, router-advertisement } accept
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
+        }
+
+        chain zone-all {
+          goto rule-ct
+          tcp dport { 22 } accept
+          goto rule-icmp
+        }
+
+        chain zone-lo {
+          accept
         }
 
       }

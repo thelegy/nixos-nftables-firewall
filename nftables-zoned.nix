@@ -103,6 +103,7 @@ in {
     toPortList = ports: assert length ports > 0; "{ ${concatStringsSep ", " (map toString ports)} }";
 
     toRuleName = rule: "rule-${rule.name}";
+    toZoneName = zone: "zone-${zone.name}";
 
     cfg = config.networking.nftables.firewall;
 
@@ -132,7 +133,7 @@ in {
         egressExpression
       ];
     in rec {
-      inherit localZone;
+      inherit name localZone;
       hasExpressions = (stringLength ingressExpressionRaw > 0) && (stringLength egressExpressionRaw > 0);
       disableForward = localZone && isRegularZone && !hasExpressions;
       ingressExpression = assert localZone || (isRegularZone -> hasExpressions); ingressExpressionRaw;
@@ -219,10 +220,9 @@ in {
     in {
 
       input.hook = hookRule "type filter hook input priority 0; policy drop";
-      input.generated.rules = pipe rules [
-        (filter (rule: any (x: x.localZone) (lookupZones rule.to)))
-        (concatMap (rule: forEach (lookupZones rule.from) (from: rule // { inherit from; })))
-        (map (rule: { onExpression = rule.from.ingressExpression; goto = toRuleName rule; }))
+      input.generated.rules = flatten [
+        (perZone (z: z.localZone) (zone: { jump = toZoneName zone; }))
+        { jump = toZoneName allZone; }
       ];
       input.drop = dropRule;
 
@@ -242,15 +242,27 @@ in {
       ];
 
       forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
-      forward.generated.rules = pipe rules [
-        (concatMap (rule: forEach (lookupZones rule.from) (from: rule // { inherit from; })))
-        (concatMap (rule: forEach (lookupZones rule.to) (to: rule // { inherit to; })))
-        (filter (rule: !(rule.from.disableForward || rule.to.disableForward)))
-        (map (rule: { onExpression = [ rule.from.ingressExpression rule.to.egressExpression ]; goto = toRuleName rule; }))
+      forward.generated.rules = flatten [
+        (perZone (_: true) (zone: { onExpression = zone.ingressExpression; jump = toZoneName zone; }))
+        { jump = toZoneName allZone; }
       ];
       forward.drop = dropRule;
 
-    } // (listToAttrs ( flatten [
+    } // (listToAttrs (flatten [
+
+      (perZone (_: true) (zone: {
+        name = toZoneName zone;
+        value.generated.rules = flatten (perRule (r: isList r.from && elem zone.name r.from) (rule:
+          (forEach (lookupZones rule.to) (to: {onExpression = to.egressExpression; goto = toRuleName rule;}))
+        ));
+      }))
+
+      {
+        name = toZoneName allZone;
+        value.generated.rules = flatten (perRule (r: r.from == "all") (rule:
+          (forEach (lookupZones rule.to) (to: {onExpression = to.egressExpression; goto = toRuleName rule;}))
+        ));
+      }
 
       (perRule (_: true) (rule: {
         name = toRuleName rule;
