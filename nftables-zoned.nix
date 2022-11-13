@@ -167,19 +167,9 @@ in {
     networking.nftables.firewall.zones.fw = {
       localZone = mkDefault true;
     };
-    networking.nftables.firewall.zones.lo = {
-      interfaces = mkDefault [ "lo" ];
-    };
 
-    networking.nftables.firewall.rules.lo = {
-      early = true;
-      from = [ "lo" ];
-      to = [ "fw" ];
-      verdict = "accept";
-    };
     networking.nftables.firewall.rules.ct = {
       early = true;
-      after = [ "lo" ];
       from = "all";
       to = "all";
       extraLines = [
@@ -189,14 +179,14 @@ in {
     };
     networking.nftables.firewall.rules.ssh = {
       early = true;
-      after = [ "lo" "ct" ];
+      after = [ "ct" ];
       from = "all";
       to = [ "fw" ];
       allowedTCPPorts = config.services.openssh.ports;
     };
     networking.nftables.firewall.rules.icmp = {
       early = true;
-      after = [ "ssh" ];
+      after = [ "ct" "ssh" ];
       from = "all";
       to = [ "fw" ];
       extraLines = [

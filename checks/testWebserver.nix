@@ -24,7 +24,6 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          iifname { lo } jump zone-lo
           jump zone-all
           counter drop
         }
@@ -59,10 +58,6 @@ machineTest ({ config, ... }: {
           tcp dport { 22 } accept
           goto rule-icmp
           tcp dport { 80, 443 } accept
-        }
-
-        chain zone-lo {
-          accept
         }
 
       }

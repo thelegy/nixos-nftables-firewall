@@ -36,7 +36,6 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          iifname { lo } jump zone-lo
           jump zone-all
           counter drop
         }
@@ -78,10 +77,6 @@ machineTest ({ config, ... }: {
           goto rule-multiple
           tcp dport { 555 } accept
           udp dport { 60000-62000 } accept
-        }
-
-        chain zone-lo {
-          accept
         }
 
       }
