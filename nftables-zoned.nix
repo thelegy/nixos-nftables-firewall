@@ -4,14 +4,7 @@
 , ... }:
 with dependencyDagOfSubmodule.lib.bake lib;
 
-let
-  portRange = types.submodule {
-    options = {
-      from = mkOption { type = types.port; };
-      to = mkOption { type = types.port; };
-    };
-  };
-in {
+{
 
   options.networking.nftables.firewall = {
 
@@ -68,11 +61,19 @@ in {
       });
     };
 
-    rules = mkOption {
+    rules = let
+      portRange = types.submodule {
+        options = {
+          from = mkOption { type = types.port; };
+          to = mkOption { type = types.port; };
+        };
+      };
+    in mkOption {
       type = types.dependencyDagOfSubmodule ({ name, ... }: {
         options = with types; {
           name = mkOption {
             type = str;
+            internal = true;
           };
           from = mkOption {
             type = either (enum [ "all" ]) (listOf str);
@@ -115,7 +116,7 @@ in {
             default = [];
           };
         };
-        config.name = mkDefault name;
+        config.name = name;
       });
       default = {};
     };
@@ -148,11 +149,6 @@ in {
       ingressExpression = "";
       egressExpression = "";
       localZone = true;
-      enable = true;
-      early = false;
-      late = false;
-      before = [];
-      after = [];
     };
     lookupZones = zoneNames: if zoneNames == "all" then singleton allZone else map (x: zones.${x}) zoneNames;
 
