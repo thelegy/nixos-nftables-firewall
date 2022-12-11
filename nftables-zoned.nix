@@ -139,8 +139,8 @@ in {
       (concatStringsSep sep)
     ];
 
-    zones = cfg.zones;
-    sortedZones = types.dependencyDagOfSubmodule.toOrderedList zones;
+    zones = filterAttrs (_: zone: zone.enable) cfg.zones;
+    sortedZones = types.dependencyDagOfSubmodule.toOrderedList cfg.zones;
 
     allZone = {
       name = "all";
@@ -156,21 +156,21 @@ in {
     };
     lookupZones = zoneNames: if zoneNames == "all" then singleton allZone else map (x: zones.${x}) zoneNames;
 
-    localZone = head (filter (x: x.localZone) (attrValues zones));
+    localZone = head (filter (x: x.localZone) sortedZones);
 
     rules = pipe cfg.rules [
       types.dependencyDagOfSubmodule.toOrderedList
     ];
 
     perRule = filterFunc: pipe rules [ (filter filterFunc) forEach ];
-    perZone = filterFunc: pipe zones [ attrValues (filter filterFunc) forEach ];
+    perZone = filterFunc: pipe sortedZones [ (filter filterFunc) forEach ];
 
   in mkIf cfg.enable rec {
 
     assertions = flatten [
-      (mapAttrsToList (_: zone: zone.assertions) zones)
+      (map (zone: zone.assertions) sortedZones)
       {
-        assertion = (count (x: x.localZone) (attrValues zones)) == 1;
+        assertion = (count (x: x.localZone) (sortedZones)) == 1;
         message = "There needs to exist exactly one localZone.";
       }
     ];
@@ -285,6 +285,7 @@ in {
 
     # enable ntf based firewall
     networking.nftables.enable = true;
+
     # disable iptables based firewall
     networking.firewall.enable = false;
   };
