@@ -128,7 +128,8 @@ with dependencyDagOfSubmodule.lib.bake lib;
     toPortList = ports: assert length ports > 0; "{ ${concatStringsSep ", " (map toString ports)} }";
 
     toRuleName = rule: "rule-${rule.name}";
-    toTraverseToName = to: "to-${to.name}";
+    toTraverseName = from: to: "traverse-from-${from.name}-to-${to.name}";
+    toTraverseContentName = from: to: "traverse-from-${from.name}-to-${to.name}-content";
 
     cfg = config.networking.nftables.firewall;
 
@@ -150,7 +151,9 @@ with dependencyDagOfSubmodule.lib.bake lib;
       egressExpression = "";
       localZone = true;
     };
+
     lookupZones = zoneNames: if zoneNames == "all" then singleton allZone else map (x: zones.${x}) zoneNames;
+    zoneInList = zone: zoneNames: if zone.name == "all" then zoneNames == "all" else isList zoneNames && elem zone.name zoneNames;
 
     localZone = head (filter (x: x.localZone) sortedZones);
 
@@ -160,6 +163,8 @@ with dependencyDagOfSubmodule.lib.bake lib;
 
     perRule = filterFunc: pipe rules [ (filter filterFunc) forEach ];
     perZone = filterFunc: pipe sortedZones [ (filter filterFunc) forEach ];
+
+    childZones = parent: if parent.name == "all" then (filter (x: x.name != "all" && ! x.localZone) sortedZones) else [];
 
   in mkIf cfg.enable rec {
 
@@ -214,12 +219,34 @@ with dependencyDagOfSubmodule.lib.bake lib;
         before = mkForce [ "end" ];
         rules = singleton "counter drop";
       };
+      traversalChains = fromZone: toZone: [
+        {
+          name = toTraverseName fromZone toZone;
+          value.generated.rules = concatLists [
+            (forEach (childZones fromZone) (childZone: {
+              onExpression = childZone.ingressExpression;
+              jump = toTraverseName childZone toZone;
+            }))
+            (forEach (childZones toZone) (childZone: {
+              onExpression = childZone.egressExpression;
+              jump = toTraverseName fromZone childZone;
+            }))
+            [ { goto = toTraverseContentName fromZone toZone; } ]
+          ];
+        }
+        {
+          name = toTraverseContentName fromZone toZone;
+          value.generated.rules = (perRule (r: zoneInList fromZone r.from && zoneInList toZone r.to) (rule:
+            { goto = toRuleName rule; }
+          ));
+        }
+      ];
     in {
 
       input.hook = hookRule "type filter hook input priority 0; policy drop";
       input.generated.rules = flatten [
-        (perZone (z: z.localZone) (zone: { jump = toTraverseToName zone; }))
-        { jump = toTraverseToName allZone; }
+        { goto = toTraverseName allZone localZone; }
+        { goto = toTraverseContentName allZone allZone; }
       ];
       input.drop = dropRule;
 
@@ -240,26 +267,20 @@ with dependencyDagOfSubmodule.lib.bake lib;
 
       forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
       forward.generated.rules = flatten [
-        (perZone (z: ! z.localZone) (zone: { onExpression = zone.egressExpression; jump = toTraverseToName zone; }))
-        { jump = toTraverseToName allZone; }
+        { goto = toTraverseName allZone allZone; }
       ];
       forward.drop = dropRule;
 
     } // (listToAttrs (flatten [
 
-      (perZone (_: true) (zone: {
-        name = toTraverseToName zone;
-        value.generated.rules = flatten (perRule (r: isList r.to && elem zone.name r.to) (rule:
-          (forEach (lookupZones rule.from) (from: {onExpression = from.ingressExpression; goto = toRuleName rule;}))
-        ));
-      }))
+      (perZone (_: true) (zone: [
+        (traversalChains zone allZone)
+        (traversalChains allZone zone)
+      ]))
 
-      {
-        name = toTraverseToName allZone;
-        value.generated.rules = flatten (perRule (r: r.to == "all") (rule:
-          (forEach (lookupZones rule.from) (from: {onExpression = from.ingressExpression; goto = toRuleName rule;}))
-        ));
-      }
+      (perZone (_: true) (fromZone: (perZone (_: true) (toZone: traversalChains fromZone toZone))))
+
+      (traversalChains allZone allZone)
 
       (perRule (_: true) (rule: {
         name = toRuleName rule;

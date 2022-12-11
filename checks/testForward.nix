@@ -45,15 +45,14 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          oifname { b } jump to-b
-          jump to-all
+          goto traverse-from-all-to-all
           counter drop
         }
 
         chain input {
           type filter hook input priority 0; policy drop
-          jump to-fw
-          jump to-all
+          goto rule-icmp
+          goto traverse-from-all-to-all-content
           counter drop
         }
 
@@ -76,19 +75,29 @@ machineTest ({ config, ... }: {
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
         }
 
-        chain to-all {
+        chain traverse-from-a-to-all {
+          oifname { b } jump traverse-from-a-to-b
+          tcp dport { 80 } accept
+        }
+
+        chain traverse-from-a-to-b {
+          tcp dport { 22 } accept
+        }
+
+        chain traverse-from-all-to-all {
+          iifname { a } jump traverse-from-a-to-all
+          oifname { b } jump traverse-from-all-to-b
+          goto traverse-from-all-to-all-content
+        }
+
+        chain traverse-from-all-to-all-content {
           goto rule-ct
           tcp dport { 42 } accept
-          iifname { a } tcp dport { 80 } accept
         }
 
-        chain to-b {
-          iifname { a } tcp dport { 22 } accept
+        chain traverse-from-all-to-b {
+          iifname { a } jump traverse-from-a-to-b
           tcp dport { 25 } accept
-        }
-
-        chain to-fw {
-          goto rule-icmp
         }
 
       }
