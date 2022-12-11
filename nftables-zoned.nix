@@ -18,10 +18,19 @@ in {
     enable = mkEnableOption "the zoned nftables based firewall.";
 
     zones = mkOption {
-      type = types.dependencyDagOfSubmodule ({ name, ... }: {
+      type = types.dependencyDagOfSubmodule ({ name, config, ... }: {
         options = {
+          assertions = mkOption {
+            type = with types; listOf attrs;
+            internal = true;
+          };
           name = mkOption {
             type = types.str;
+            internal = true;
+          };
+          hasExpressions = mkOption {
+            type = types.bool;
+            internal = true;
           };
           localZone = mkOption {
             type = types.bool;
@@ -32,15 +41,30 @@ in {
             default = [];
           };
           ingressExpression = mkOption {
-            type = with types; nullOr str;
-            default = null;
+            type = types.str;
+            default = "";
           };
           egressExpression = mkOption {
-            type = with types; nullOr str;
-            default = null;
+            type = types.str;
+            default = "";
           };
         };
-        config.name = mkDefault name;
+        config = with config; {
+          assertions = flatten [
+            {
+              assertion = isNull ingressExpression == isNull egressExpression;
+              message = "You need to specify either both, an ingress and egress expression, or none";
+            }
+            {
+              assertion = (localZone || hasExpressions) && ! (localZone && hasExpressions);
+              message = "Each zone has to either be the local zone or needs to be defined by ingress and egress expressions";
+            }
+          ];
+          name = name;
+          hasExpressions = (stringLength ingressExpression > 0) && (stringLength egressExpression > 0);
+          ingressExpression = mkIf (length interfaces >= 1) "iifname { ${concatStringsSep ", " interfaces} }";
+          egressExpression = mkIf (length interfaces >= 1) "oifname { ${concatStringsSep ", " interfaces} }";
+        };
       });
     };
 
@@ -115,35 +139,21 @@ in {
       (concatStringsSep sep)
     ];
 
-    enrichZone =
-      { name
-      , interfaces ? []
-      , ingressExpression ? ""
-      , egressExpression ? ""
-      , localZone
-      , isRegularZone ? true
-      , ...
-      }: let
-      ingressExpressionRaw = concatNonEmptyStringsSep " " [
-        (optionalString (length interfaces > 0) "iifname { ${concatStringsSep ", " interfaces} }")
-        ingressExpression
-      ];
-      egressExpressionRaw = concatNonEmptyStringsSep " " [
-        (optionalString (length interfaces > 0) "oifname { ${concatStringsSep ", " interfaces} }")
-        egressExpression
-      ];
-    in rec {
-      inherit name localZone;
-      hasExpressions = (stringLength ingressExpressionRaw > 0) && (stringLength egressExpressionRaw > 0);
-      disableForward = localZone && isRegularZone && !hasExpressions;
-      ingressExpression = assert localZone || (isRegularZone -> hasExpressions); ingressExpressionRaw;
-      egressExpression = assert localZone || (isRegularZone -> hasExpressions); egressExpressionRaw;
-    };
-
-    zones = mapAttrs (k: v: enrichZone v) cfg.zones;
+    zones = cfg.zones;
     sortedZones = types.dependencyDagOfSubmodule.toOrderedList zones;
 
-    allZone = enrichZone { name = "all"; isRegularZone = false; localZone = true; enable = true; early = false; late = false; before = []; after = []; };
+    allZone = {
+      name = "all";
+      interfaces = [];
+      ingressExpression = "";
+      egressExpression = "";
+      localZone = true;
+      enable = true;
+      early = false;
+      late = false;
+      before = [];
+      after = [];
+    };
     lookupZones = zoneNames: if zoneNames == "all" then singleton allZone else map (x: zones.${x}) zoneNames;
 
     localZone = head (filter (x: x.localZone) (attrValues zones));
@@ -158,6 +168,7 @@ in {
   in mkIf cfg.enable rec {
 
     assertions = flatten [
+      (mapAttrsToList (_: zone: zone.assertions) zones)
       {
         assertion = (count (x: x.localZone) (attrValues zones)) == 1;
         message = "There needs to exist exactly one localZone.";
@@ -272,7 +283,10 @@ in {
 
     ]));
 
+    # enable ntf based firewall
     networking.nftables.enable = true;
+    # disable iptables based firewall
+    networking.firewall.enable = false;
   };
 
 }
