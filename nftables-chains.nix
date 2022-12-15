@@ -111,10 +111,10 @@ in {
 
     processLinkRule = r: let
       isLinkRule = check linkRuleType r;
-      isRequired = elem r.goto config.networking.nftables.requiredChains;
+      isRequired = elem r.jump config.networking.nftables.requiredChains;
       targetChain = chains.${r.${r.linkType}};
       targetChainLength = length targetChain;
-      isGoto = r.linkType == "goto" && (isRequired || targetChainLength > 1);
+      isGoto = r.linkType == "goto";
       isJump = r.linkType == "jump" && (isRequired || targetChainLength >= 1);
       inlineRule =
         if targetChainLength >= 1

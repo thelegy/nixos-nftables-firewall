@@ -24,14 +24,14 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          goto rule-ct
+          jump traverse-from-all-to-all
           counter drop
         }
 
         chain input {
           type filter hook input priority 0; policy drop
-          goto traverse-from-all-to-fw-content
-          goto rule-ct
+          jump traverse-from-all-to-fw
+          jump traverse-from-all-to-all-content
           counter drop
         }
 
@@ -54,10 +54,30 @@ machineTest ({ config, ... }: {
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
         }
 
-        chain traverse-from-all-to-fw-content {
+        chain rule-ssh {
           tcp dport { 22 } accept
-          goto rule-icmp
+        }
+
+        chain rule-webserver {
           tcp dport { 80, 443 } accept
+        }
+
+        chain traverse-from-all-to-all {
+          jump traverse-from-all-to-all-content
+        }
+
+        chain traverse-from-all-to-all-content {
+          jump rule-ct
+        }
+
+        chain traverse-from-all-to-fw {
+          jump traverse-from-all-to-fw-content
+        }
+
+        chain traverse-from-all-to-fw-content {
+          jump rule-ssh
+          jump rule-icmp
+          jump rule-webserver
         }
 
       }

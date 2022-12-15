@@ -231,13 +231,13 @@ with dependencyDagOfSubmodule.lib.bake lib;
               onExpression = childZone.egressExpression;
               jump = toTraverseName fromZone childZone;
             }))
-            [ { goto = toTraverseContentName fromZone toZone; } ]
+            [ { jump = toTraverseContentName fromZone toZone; } ]
           ];
         }
         {
           name = toTraverseContentName fromZone toZone;
           value.generated.rules = (perRule (r: zoneInList fromZone r.from && zoneInList toZone r.to) (rule:
-            { goto = toRuleName rule; }
+            { jump = toRuleName rule; }
           ));
         }
       ];
@@ -245,8 +245,8 @@ with dependencyDagOfSubmodule.lib.bake lib;
 
       input.hook = hookRule "type filter hook input priority 0; policy drop";
       input.generated.rules = flatten [
-        { goto = toTraverseName allZone localZone; }
-        { goto = toTraverseContentName allZone allZone; }
+        { jump = toTraverseName allZone localZone; }
+        { jump = toTraverseContentName allZone allZone; }
       ];
       input.drop = dropRule;
 
@@ -267,7 +267,7 @@ with dependencyDagOfSubmodule.lib.bake lib;
 
       forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
       forward.generated.rules = flatten [
-        { goto = toTraverseName allZone allZone; }
+        { jump = toTraverseName allZone allZone; }
       ];
       forward.drop = dropRule;
 

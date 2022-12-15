@@ -45,14 +45,14 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          goto traverse-from-all-to-all
+          jump traverse-from-all-to-all
           counter drop
         }
 
         chain input {
           type filter hook input priority 0; policy drop
-          goto rule-icmp
-          goto traverse-from-all-to-all-content
+          jump traverse-from-all-to-fw
+          jump traverse-from-all-to-all-content
           counter drop
         }
 
@@ -69,35 +69,71 @@ machineTest ({ config, ... }: {
           ct state invalid drop
         }
 
+        chain rule-forward {
+          tcp dport { 22 } accept
+        }
+
+        chain rule-from-all {
+          tcp dport { 25 } accept
+        }
+
+        chain rule-from-to-all {
+          tcp dport { 42 } accept
+        }
+
         chain rule-icmp {
           ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
           ip protocol icmp icmp type { echo-request, router-advertisement } accept
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
         }
 
-        chain traverse-from-a-to-all {
-          oifname { b } jump traverse-from-a-to-b
+        chain rule-to-all {
           tcp dport { 80 } accept
         }
 
+        chain traverse-from-a-to-all {
+          oifname { b } jump traverse-from-a-to-b
+          jump traverse-from-a-to-all-content
+        }
+
+        chain traverse-from-a-to-all-content {
+          jump rule-to-all
+        }
+
         chain traverse-from-a-to-b {
-          tcp dport { 22 } accept
+          jump traverse-from-a-to-b-content
+        }
+
+        chain traverse-from-a-to-b-content {
+          jump rule-forward
         }
 
         chain traverse-from-all-to-all {
           iifname { a } jump traverse-from-a-to-all
           oifname { b } jump traverse-from-all-to-b
-          goto traverse-from-all-to-all-content
+          jump traverse-from-all-to-all-content
         }
 
         chain traverse-from-all-to-all-content {
-          goto rule-ct
-          tcp dport { 42 } accept
+          jump rule-ct
+          jump rule-from-to-all
         }
 
         chain traverse-from-all-to-b {
           iifname { a } jump traverse-from-a-to-b
-          tcp dport { 25 } accept
+          jump traverse-from-all-to-b-content
+        }
+
+        chain traverse-from-all-to-b-content {
+          jump rule-from-all
+        }
+
+        chain traverse-from-all-to-fw {
+          jump traverse-from-all-to-fw-content
+        }
+
+        chain traverse-from-all-to-fw-content {
+          jump rule-icmp
         }
 
       }
