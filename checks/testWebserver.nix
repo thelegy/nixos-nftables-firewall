@@ -24,14 +24,16 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          jump traverse-from-all-to-all
+          ct state {established, related} accept
+          ct state invalid drop
           counter drop
         }
 
         chain input {
           type filter hook input priority 0; policy drop
+          ct state {established, related} accept
+          ct state invalid drop
           jump traverse-from-all-to-fw
-          jump traverse-from-all-to-all-content
           counter drop
         }
 
@@ -41,11 +43,6 @@ machineTest ({ config, ... }: {
 
         chain prerouting {
           type nat hook prerouting priority dstnat;
-        }
-
-        chain rule-ct {
-          ct state {established, related} accept
-          ct state invalid drop
         }
 
         chain rule-icmp {
@@ -60,14 +57,6 @@ machineTest ({ config, ... }: {
 
         chain rule-webserver {
           tcp dport { 80, 443 } accept
-        }
-
-        chain traverse-from-all-to-all {
-          jump traverse-from-all-to-all-content
-        }
-
-        chain traverse-from-all-to-all-content {
-          jump rule-ct
         }
 
         chain traverse-from-all-to-fw {

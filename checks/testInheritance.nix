@@ -42,14 +42,17 @@ machineTest ({ config, ... }: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
+          ct state {established, related} accept
+          ct state invalid drop
           jump traverse-from-all-to-all
           counter drop
         }
 
         chain input {
           type filter hook input priority 0; policy drop
+          ct state {established, related} accept
+          ct state invalid drop
           jump traverse-from-all-to-fw
-          jump traverse-from-all-to-all-content
           counter drop
         }
 
@@ -67,11 +70,6 @@ machineTest ({ config, ... }: {
 
         chain rule-b-to-c {
           tcp dport { 2000 } accept
-        }
-
-        chain rule-ct {
-          ct state {established, related} accept
-          ct state invalid drop
         }
 
         chain rule-icmp {
@@ -115,11 +113,6 @@ machineTest ({ config, ... }: {
         chain traverse-from-all-to-all {
           iifname { a } jump traverse-from-a-to-all
           oifname { a } jump traverse-from-all-to-a
-          jump traverse-from-all-to-all-content
-        }
-
-        chain traverse-from-all-to-all-content {
-          jump rule-ct
         }
 
         chain traverse-from-all-to-b {

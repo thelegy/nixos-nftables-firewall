@@ -186,7 +186,7 @@ in {
     assertions = flatten [
       (map (zone: zone.assertions) sortedZones)
       {
-        assertion = (count (x: x.localZone) (sortedZones)) == 1;
+        assertion = (count (x: x.localZone) sortedZones) == 1;
         message = "There needs to exist exactly one localZone.";
       }
     ];
@@ -195,15 +195,6 @@ in {
       localZone = mkDefault true;
     };
 
-    networking.nftables.firewall.rules.ct = {
-      early = true;
-      from = "all";
-      to = "all";
-      extraLines = [
-        "ct state {established, related} accept"
-        "ct state invalid drop"
-      ];
-    };
     networking.nftables.firewall.rules.ssh = {
       early = true;
       after = [ "ct" ];
@@ -234,6 +225,14 @@ in {
         before = mkForce [ "end" ];
         rules = singleton "counter drop";
       };
+      conntrackRule = {
+        after = mkForce [ "veryEarly" ];
+        before = [ "early" ];
+        rules = [
+          "ct state {established, related} accept"
+          "ct state invalid drop"
+        ];
+      };
       traversalChains = fromZone: toZone: [
         {
           name = toTraverseName fromZone toZone;
@@ -259,6 +258,7 @@ in {
     in {
 
       input.hook = hookRule "type filter hook input priority 0; policy drop";
+      input.conntrack = conntrackRule;
       input.generated.rules = [
         { jump = toTraverseName allZone localZone; }
         { jump = toTraverseContentName allZone allZone; }
@@ -281,6 +281,7 @@ in {
       ];
 
       forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
+      forward.conntrack = conntrackRule;
       forward.generated.rules = [
         { jump = toTraverseName allZone allZone; }
       ];
