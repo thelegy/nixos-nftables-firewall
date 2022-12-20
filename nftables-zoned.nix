@@ -4,7 +4,9 @@
 , ... }:
 with dependencyDagOfSubmodule.lib.bake lib;
 
-{
+let
+  cfg = config.networking.nftables.firewall;
+in {
 
   options.networking.nftables.firewall = {
 
@@ -29,6 +31,10 @@ with dependencyDagOfSubmodule.lib.bake lib;
             type = types.bool;
             default = false;
           };
+          parent = mkOption {
+            type = with types; nullOr str;
+            default = null;
+          };
           interfaces = mkOption {
             type = with types; listOf str;
             default = [];
@@ -51,6 +57,14 @@ with dependencyDagOfSubmodule.lib.bake lib;
             {
               assertion = (localZone || hasExpressions) && ! (localZone && hasExpressions);
               message = "Each zone has to either be the local zone or needs to be defined by ingress and egress expressions";
+            }
+            {
+              assertion = localZone -> isNull parent;
+              message = "The local zone cannot have any parent defined";
+            }
+            {
+              assertion = isNull parent || hasAttr parent cfg.zones;
+              message = "Zone specified as child of zone '${parent}', but no such zone is defined";
             }
           ];
           name = name;
@@ -131,8 +145,6 @@ with dependencyDagOfSubmodule.lib.bake lib;
     toTraverseName = from: to: "traverse-from-${from.name}-to-${to.name}";
     toTraverseContentName = from: to: "traverse-from-${from.name}-to-${to.name}-content";
 
-    cfg = config.networking.nftables.firewall;
-
     services = config.networking.services;
 
     concatNonEmptyStringsSep = sep: strings: pipe strings [
@@ -164,7 +176,10 @@ with dependencyDagOfSubmodule.lib.bake lib;
     perRule = filterFunc: pipe rules [ (filter filterFunc) forEach ];
     perZone = filterFunc: pipe sortedZones [ (filter filterFunc) forEach ];
 
-    childZones = parent: if parent.name == "all" then (filter (x: x.name != "all" && ! x.localZone) sortedZones) else [];
+    childZones = parent:
+      if parent.name == "all"
+      then filter (x: x.name != "all" && ! x.localZone && isNull x.parent) sortedZones
+      else filter (x: x.parent == parent.name) sortedZones;
 
   in mkIf cfg.enable rec {
 
@@ -244,7 +259,7 @@ with dependencyDagOfSubmodule.lib.bake lib;
     in {
 
       input.hook = hookRule "type filter hook input priority 0; policy drop";
-      input.generated.rules = flatten [
+      input.generated.rules = [
         { jump = toTraverseName allZone localZone; }
         { jump = toTraverseContentName allZone allZone; }
       ];
@@ -266,7 +281,7 @@ with dependencyDagOfSubmodule.lib.bake lib;
       ];
 
       forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
-      forward.generated.rules = flatten [
+      forward.generated.rules = [
         { jump = toTraverseName allZone allZone; }
       ];
       forward.drop = dropRule;

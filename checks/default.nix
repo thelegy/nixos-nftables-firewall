@@ -20,5 +20,7 @@ in with lib; {
 
     testPortRules = import ./testPortRules.nix lib;
 
+    testInheritance = import ./testInheritance.nix lib;
+
   };
 }
