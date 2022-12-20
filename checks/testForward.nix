@@ -53,6 +53,7 @@ machineTest ({ config, ... }: {
 
         chain input {
           type filter hook input priority 0; policy drop
+          iifname { lo } accept
           ct state {established, related} accept
           ct state invalid drop
           jump traverse-from-all-to-fw
