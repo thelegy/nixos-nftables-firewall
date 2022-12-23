@@ -20,6 +20,15 @@
 
     checks.x86_64-linux = import ./checks "x86_64-linux" flakes;
 
+    legacyPackages = with  nixpkgs.lib; genAttrs systems.flakeExposed (system: let
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [ (import ./docs) ];
+      };
+    in {
+      docs = pkgs.nixos-nftables-firewall-docs;
+    });
+
   };
 
 }
