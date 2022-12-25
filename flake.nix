@@ -23,7 +23,7 @@
     legacyPackages = with  nixpkgs.lib; genAttrs systems.flakeExposed (system: let
       pkgs = import nixpkgs {
         inherit system;
-        overlays = [ (import ./docs) ];
+        overlays = [ (import ./docs flakes) ];
       };
     in {
       docs = pkgs.nixos-nftables-firewall-docs;
