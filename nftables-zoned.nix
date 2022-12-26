@@ -110,12 +110,12 @@ in {
           allowedTCPPortRanges = mkOption {
             type = listOf portRange;
             default = [];
-            example = [ { from = 1337; to = 1347; } ];
+            example = literalExpression "[ { from = 1337; to = 1347; } ]";
           };
           allowedUDPPortRanges = mkOption {
             type = listOf portRange;
             default = [];
-            example = [ { from = 55000; to = 56000; } ];
+            example = literalExpression "[ { from = 55000; to = 56000; } ]";
           };
           verdict = mkOption {
             type = nullOr (enum [ "accept" "drop" "reject" ]);

@@ -65,6 +65,12 @@ in
         name = "nftables-rules";
         text = cfg.stopRuleset;
       };
+      defaultText = literalExpression ''
+        pkgs.writeTextFile {
+          name = "nftables-rules";
+          text = config.networking.nftables.stopRuleset;
+        };
+      '';
       description = mdDoc
         ''
           The ruleset file to be used with nftables.  Should be in a format that
