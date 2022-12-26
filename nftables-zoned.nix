@@ -10,7 +10,7 @@ in {
 
   options.networking.nftables.firewall = {
 
-    enable = mkEnableOption "the zoned nftables based firewall.";
+    enable = mkEnableOption (mdDoc "the zoned nftables based firewall");
 
     zones = mkOption {
       type = types.dependencyDagOfSubmodule ({ name, config, ... }: {

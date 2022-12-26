@@ -1,3 +1,4 @@
+{...}:
 { lib, ... }:
 with lib;
 
@@ -24,7 +25,7 @@ let
 
   in (coercedTo port (p: { port=p; }) internalType) // rec {
     name = "port or portrange with protocol";
-    description = "${name} or ${port.description} defaulting to protocol \"tcp\"";
+    description = mdDoc "${name} or ${port.description} defaulting to protocol \"tcp\"";
   };
 
   servicesType = types.attrsOf serviceType;

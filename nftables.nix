@@ -1,3 +1,4 @@
+{...}:
 { config, pkgs, lib, ... }:
 with lib;
 let
@@ -51,7 +52,7 @@ in
           }
         }
       '';
-      description =
+      description = mdDoc
         ''
           The ruleset to be used with nftables.  Should be in a format that
           can be loaded using "/bin/nft -f".  The ruleset is only applied,
@@ -64,7 +65,7 @@ in
         name = "nftables-rules";
         text = cfg.stopRuleset;
       };
-      description =
+      description = mdDoc
         ''
           The ruleset file to be used with nftables.  Should be in a format that
           can be loaded using "nft -f".  The ruleset is only applied,

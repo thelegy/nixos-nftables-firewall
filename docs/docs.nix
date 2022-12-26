@@ -38,16 +38,40 @@ let
     (mapAttrs mapFn)
   ];
 
-  renderOptionDoc = options: let
+  renderCode = code:
+    if isType "literalExpression" code then "```\n${code.text}\n```"
+    else if isType "literalMD" code then code.text
+    else "```\n${generators.toPretty {} code}\n```";
+
+  renderOptionsDoc = options: let
     optionsDoc = import "${path}/nixos/lib/make-options-doc" {
       inherit pkgs lib options;
       warningsAreErrors = false;
+      allowDocBook = false;
     };
-  in readFile optionsDoc.optionsCommonMark;
+    optionsDocParsed = pipe "${optionsDoc.optionsJSON}/share/doc/nixos/options.json" [
+      readFile
+      builtins.unsafeDiscardStringContext
+      strings.fromJSON
+    ];
+    renderOptionDoc = name: option: ''
+      ## ${escapeXML name}
+      ${option.description}
+
+      ${optionalString (! isNull option.type or null) "*_Type_*\n```\n${option.type}\n```"}
+
+
+      ${optionalString (! isNull option.default or null) "*_Default_*\n${renderCode option.default}"}
+
+
+      ${optionalString (! isNull option.example or null) "*Example*\n${renderCode option.example}"}
+    '';
+  in concatStrings (mapAttrsToList renderOptionDoc optionsDocParsed);
+  #in readFile optionsDoc.optionsCommonMark;
 
   renderModuleDocs = modulesPath: modules: let
-    nixosModule = args@{ options, ... }: {
-      options.output = mkOption { type = types.anything; description = ""; };
+    nixosModule = args@{ options, pkgs, ... }: {
+      options.output = mkOption { type = types.anything; description = mdDoc ""; };
       config.output = let
         prefixMd = module: content: ''
           # Module ${module}
@@ -56,7 +80,7 @@ let
         renderModuleDoc = module: pipe (import "${modulesPath}/${module}.nix" flakes args).options [
           collectOptionPaths
           (flip filterAttrsRecursiveByPaths options)
-          renderOptionDoc
+          renderOptionsDoc
           (prefixMd module)
           (writeTextDir "modules/${module}.md")
         ];
@@ -92,8 +116,8 @@ let
       sphinxConfig
       indexRst
       (renderModuleDocs ../. [
-        #"networking-services"
-        #"nftables"
+        "networking-services"
+        "nftables"
         "nftables-chains"
         "nftables-zoned"
       ])
