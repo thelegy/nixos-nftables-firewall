@@ -15,7 +15,7 @@
   in {
 
     nixosModules = modules // {
-      full.imports = builtins.attrValues modules;
+      full = modules.nftables-zoned;
     };
 
     checks.x86_64-linux = import ./checks "x86_64-linux" flakes;

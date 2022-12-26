@@ -1,4 +1,4 @@
-{ dependencyDagOfSubmodule, ... }:
+flakes@{ dependencyDagOfSubmodule, ... }:
 { lib
 , config
 , ... }:
@@ -62,6 +62,10 @@ let
   };
 
 in {
+
+  imports = [
+    (import ./nftables.nix flakes)
+  ];
 
   options = {
 

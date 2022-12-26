@@ -1,4 +1,4 @@
-{ dependencyDagOfSubmodule, ... }:
+flakes@{ dependencyDagOfSubmodule, ... }:
 { config
 , lib
 , ... }:
@@ -7,6 +7,11 @@ with dependencyDagOfSubmodule.lib.bake lib;
 let
   cfg = config.networking.nftables.firewall;
 in {
+
+  imports = [
+    (import ./nftables-chains.nix flakes)
+    (import ./networking-services.nix flakes)
+  ];
 
   options.networking.nftables.firewall = {
 
