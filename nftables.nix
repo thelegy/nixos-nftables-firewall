@@ -85,6 +85,10 @@ in
   config = mkIf cfg.enable {
     systemd.services.nftables = {
       serviceConfig = let
+        rulesetFile =
+          if isNull cfg.rulesetFile or null
+          then pkgs.writeText "ruleset-nftables" cfg.ruleset
+          else cfg.rulesetFile;
         rulesScript = rulesetFile: name: pkgs.writeScript "nftables-${name}rules" ''
           #! ${pkgs.nftables}/bin/nft -f
           flush ruleset
@@ -105,7 +109,7 @@ in
             ${rulesScript rulesetFile name}
           fi
         '';
-        startScript = checkScript cfg.rulesetFile "";
+        startScript = checkScript rulesetFile "";
         stopScript = checkScript cfg.stopRulesetFile "stop";
       in {
         Type = "oneshot";
