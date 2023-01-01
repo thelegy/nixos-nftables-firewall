@@ -142,6 +142,11 @@ in {
           masquerade = mkOption {
             type = types.bool;
             default = false;
+            description = mdDoc ''
+              This option currently generates output that may be broken.
+              Use at your own risk!
+            '';
+            internal = true;
           };
           extraLines = mkOption {
             type = types.listOf config.build.nftables-ruleType;
