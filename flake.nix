@@ -7,7 +7,6 @@
 
   outputs = flakes@{ nixpkgs, ... }: let
     modules = {
-      networking-services = import ./networking-services.nix flakes;
       nftables = import ./nftables.nix flakes;
       nftables-chains = import ./nftables-chains.nix flakes;
       nftables-zoned = import ./nftables-zoned.nix flakes;

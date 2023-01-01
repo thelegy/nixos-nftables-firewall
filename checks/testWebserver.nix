@@ -6,14 +6,12 @@ machineTest ({ config, ... }: {
 
   imports = [ flakes.self.nixosModules.full ];
 
-  networking.services.http = 80;
-  networking.services.https = 443;
   networking.nftables.firewall = {
     enable = true;
     rules.webserver = {
       from = "all";
       to = [ "fw" ];
-      allowedServices = [ "http" "https" ];
+      allowedTCPPorts = [ 80 443 ];
     };
   };
 

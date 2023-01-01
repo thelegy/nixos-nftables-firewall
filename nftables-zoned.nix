@@ -11,7 +11,6 @@ in {
 
   imports = [
     (import ./nftables-chains.nix flakes)
-    (import ./networking-services.nix flakes)
   ];
 
   options.networking.nftables.firewall = {
@@ -113,10 +112,6 @@ in {
               intended to specify special drop/reject rules.
             '';
           };
-          allowedServices = mkOption {
-            type = listOf str;
-            default = [];
-          };
           allowedTCPPorts = mkOption {
             type = listOf int;
             default = [];
@@ -169,8 +164,6 @@ in {
       zoneName = zone: replaceStrings ["-"] ["--"] zone.name;
       zoneSpec = zone: match: "${zoneName zone}-${if match then "subzones" else "zone"}";
     in "traverse-from-${zoneSpec from matchFromSubzones}-to-${zoneSpec to matchToSubzones}-${ruleType}";
-
-    services = config.networking.services;
 
     concatNonEmptyStringsSep = sep: strings: pipe strings [
       (filter (x: x != null))
@@ -347,11 +340,8 @@ in {
         name = toRuleName rule;
         value.generated.rules = let
           formatPortRange = { from, to }: "${toString from}-${toString to}";
-          getAllowedPorts = services.__getAllowedPorts;
-          getAllowedPortranges = services.__getAllowedPortranges;
-          allowedExtraPorts = protocol: getAllowedPorts protocol rule.allowedServices ++ forEach (getAllowedPortranges protocol rule.allowedServices) formatPortRange;
-          allowedTCPPorts = rule.allowedTCPPorts ++ forEach rule.allowedTCPPortRanges formatPortRange ++ allowedExtraPorts "tcp";
-          allowedUDPPorts = rule.allowedUDPPorts ++ forEach rule.allowedUDPPortRanges formatPortRange ++ allowedExtraPorts "udp";
+          allowedTCPPorts = rule.allowedTCPPorts ++ forEach rule.allowedTCPPortRanges formatPortRange;
+          allowedUDPPorts = rule.allowedUDPPorts ++ forEach rule.allowedUDPPortRanges formatPortRange;
         in [
           (optionalString (allowedTCPPorts!=[]) "tcp dport ${toPortList allowedTCPPorts} accept")
           (optionalString (allowedUDPPorts!=[]) "udp dport ${toPortList allowedUDPPorts} accept")

@@ -116,7 +116,6 @@ let
       sphinxConfig
       indexRst
       (renderModuleDocs ../. [
-        "networking-services"
         "nftables"
         "nftables-chains"
         "nftables-zoned"
