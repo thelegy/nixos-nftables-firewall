@@ -4,7 +4,7 @@
 
 machineTest ({ config, ... }: {
 
-  imports = [ flakes.self.nixosModules.full ];
+  imports = [ flakes.self.nixosModules.default ];
 
   networking.nftables.chains = {
     input.a.rules = [

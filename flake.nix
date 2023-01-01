@@ -5,16 +5,19 @@
     inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = flakes@{ nixpkgs, ... }: let
-    modules = {
+  outputs = flakes@{ nixpkgs, ... }: {
+
+    nixosModules = rec {
       nftables = import ./nftables.nix flakes;
       nftables-chains = import ./nftables-chains.nix flakes;
       nftables-zoned = import ./nftables-zoned.nix flakes;
-    };
-  in {
 
-    nixosModules = modules // {
-      full = modules.nftables-zoned;
+      default = nftables-zoned;
+
+      full = with nixpkgs.lib; warn (concatStringsSep " " [
+        "The nixos-nftables-firewall 'full' module has been deprecated,"
+        "please use the 'default' module instead."
+      ]) nftables-zoned;
     };
 
     checks.x86_64-linux = import ./checks "x86_64-linux" flakes;

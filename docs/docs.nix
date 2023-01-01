@@ -91,7 +91,7 @@ let
     };
     machine = flakes.nixpkgs.lib.nixosSystem {
       inherit system;
-      modules = [ flakes.self.nixosModules.full nixosModule ];
+      modules = [ flakes.self.nixosModules.default nixosModule ];
     };
   in machine.config.output;
 
