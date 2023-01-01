@@ -6,6 +6,7 @@ with dependencyDagOfSubmodule.lib.bake lib;
 
 let
   cfg = config.networking.nftables.firewall;
+  ruleTypes = [ "rule" "policy" ];
 in {
 
   imports = [
@@ -100,6 +101,18 @@ in {
           to = mkOption {
             type = either (enum [ "all" ]) (listOf str);
           };
+          ruleType = mkOption {
+            type = enum ruleTypes;
+            default = "rule";
+            description = mdDoc ''
+              The type of the rule specifies when rules are applied.
+              Rules of the type `policy` are applied after all rules of the type
+              `policy` were.
+
+              Usually most rules are of the type `rule`, `policy` is mostly
+              intended to specify special drop/reject rules.
+            '';
+          };
           allowedServices = mkOption {
             type = listOf str;
             default = [];
@@ -147,10 +160,10 @@ in {
     toPortList = ports: assert length ports > 0; "{ ${concatStringsSep ", " (map toString ports)} }";
 
     toRuleName = rule: "rule-${rule.name}";
-    toTraverseName = from: matchFromSubzones: to: matchToSubzones: let
+    toTraverseName = from: matchFromSubzones: to: matchToSubzones: ruleType: let
       zoneName = zone: replaceStrings ["-"] ["--"] zone.name;
       zoneSpec = zone: match: "${zoneName zone}-${if match then "subzones" else "zone"}";
-    in "traverse-from-${zoneSpec from matchFromSubzones}-to-${zoneSpec to matchToSubzones}-rule";
+    in "traverse-from-${zoneSpec from matchFromSubzones}-to-${zoneSpec to matchToSubzones}-${ruleType}";
 
     services = config.networking.services;
 
@@ -241,38 +254,40 @@ in {
         ];
       };
       traversalChains = fromZone: toZone:
-        (forEach [true false] (matchFromSubzones:
-          (forEach [true false] (matchToSubzones:
-            {
-              name = toTraverseName fromZone matchFromSubzones toZone matchToSubzones;
-              value.generated.rules = concatLists [
+        (forEach ruleTypes (ruleType:
+          (forEach [true false] (matchFromSubzones:
+            (forEach [true false] (matchToSubzones:
+              {
+                name = toTraverseName fromZone matchFromSubzones toZone matchToSubzones ruleType;
+                value.generated.rules = concatLists [
 
-                (optionals matchFromSubzones
-                  (forEach (childZones fromZone) (childZone: {
-                    onExpression = childZone.ingressExpression;
-                    jump = toTraverseName childZone true toZone matchToSubzones;
-                  }))
-                )
+                  (optionals matchFromSubzones
+                    (forEach (childZones fromZone) (childZone: {
+                      onExpression = childZone.ingressExpression;
+                      jump = toTraverseName childZone true toZone matchToSubzones ruleType;
+                    }))
+                  )
 
-                (optionals matchToSubzones
-                  (forEach (childZones toZone) (childZone: {
-                    onExpression = childZone.egressExpression;
-                    jump = toTraverseName fromZone false childZone true;
-                  }))
-                )
+                  (optionals matchToSubzones
+                    (forEach (childZones toZone) (childZone: {
+                      onExpression = childZone.egressExpression;
+                      jump = toTraverseName fromZone false childZone true ruleType;
+                    }))
+                  )
 
-                (optional (matchFromSubzones || matchToSubzones) {
-                  jump = toTraverseName fromZone false toZone false;
-                })
+                  (optional (matchFromSubzones || matchToSubzones) {
+                    jump = toTraverseName fromZone false toZone false ruleType;
+                  })
 
-                (optionals (!(matchFromSubzones || matchToSubzones))
-                  (perRule (r: zoneInList fromZone r.from && zoneInList toZone r.to) (rule: {
-                    jump = toRuleName rule;
-                  }))
-                )
+                  (optionals (!(matchFromSubzones || matchToSubzones))
+                    (perRule (r: zoneInList fromZone r.from && zoneInList toZone r.to && r.ruleType == ruleType) (rule: {
+                      jump = toRuleName rule;
+                    }))
+                  )
 
-              ];
-            }
+                ];
+              }
+            ))
           ))
         ));
     in {
@@ -284,10 +299,10 @@ in {
         rules = singleton "iifname { lo } accept";
       };
       input.conntrack = conntrackRule;
-      input.generated.rules = [
-        { jump = toTraverseName allZone true localZone true; }
-        { jump = toTraverseName allZone true allZone false; }
-      ];
+      input.generated.rules = concatLists (forEach ruleTypes (ruleType: [
+        { jump = toTraverseName allZone true localZone true ruleType; }
+        { jump = toTraverseName allZone true allZone false ruleType; }
+      ]));
       input.drop = dropRule;
 
       prerouting.hook = hookRule "type nat hook prerouting priority dstnat;";
@@ -307,9 +322,9 @@ in {
 
       forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
       forward.conntrack = conntrackRule;
-      forward.generated.rules = [
-        { jump = toTraverseName allZone true allZone true; }
-      ];
+      forward.generated.rules = concatLists (forEach ruleTypes (ruleType: [
+        { jump = toTraverseName allZone true allZone true ruleType; }
+      ]));
       forward.drop = dropRule;
 
     } // (listToAttrs (flatten [

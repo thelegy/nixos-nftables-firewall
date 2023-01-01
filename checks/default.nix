@@ -22,5 +22,7 @@ in with lib; {
 
     testInheritance = import ./testInheritance.nix lib;
 
+    testRuleType = import ./testRuleType.nix lib;
+
   };
 }
