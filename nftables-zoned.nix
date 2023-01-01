@@ -147,8 +147,10 @@ in {
     toPortList = ports: assert length ports > 0; "{ ${concatStringsSep ", " (map toString ports)} }";
 
     toRuleName = rule: "rule-${rule.name}";
-    toTraverseName = from: to: "traverse-from-${from.name}-to-${to.name}";
-    toTraverseContentName = from: to: "traverse-from-${from.name}-to-${to.name}-content";
+    toTraverseName = from: matchFromSubzones: to: matchToSubzones: let
+      zoneName = zone: replaceStrings ["-"] ["--"] zone.name;
+      zoneSpec = zone: match: "${zoneName zone}-${if match then "subzones" else "zone"}";
+    in "traverse-from-${zoneSpec from matchFromSubzones}-to-${zoneSpec to matchToSubzones}-rule";
 
     services = config.networking.services;
 
@@ -238,28 +240,41 @@ in {
           "ct state invalid drop"
         ];
       };
-      traversalChains = fromZone: toZone: [
-        {
-          name = toTraverseName fromZone toZone;
-          value.generated.rules = concatLists [
-            (forEach (childZones fromZone) (childZone: {
-              onExpression = childZone.ingressExpression;
-              jump = toTraverseName childZone toZone;
-            }))
-            (forEach (childZones toZone) (childZone: {
-              onExpression = childZone.egressExpression;
-              jump = toTraverseName fromZone childZone;
-            }))
-            [ { jump = toTraverseContentName fromZone toZone; } ]
-          ];
-        }
-        {
-          name = toTraverseContentName fromZone toZone;
-          value.generated.rules = (perRule (r: zoneInList fromZone r.from && zoneInList toZone r.to) (rule:
-            { jump = toRuleName rule; }
-          ));
-        }
-      ];
+      traversalChains = fromZone: toZone:
+        (forEach [true false] (matchFromSubzones:
+          (forEach [true false] (matchToSubzones:
+            {
+              name = toTraverseName fromZone matchFromSubzones toZone matchToSubzones;
+              value.generated.rules = concatLists [
+
+                (optionals matchFromSubzones
+                  (forEach (childZones fromZone) (childZone: {
+                    onExpression = childZone.ingressExpression;
+                    jump = toTraverseName childZone true toZone matchToSubzones;
+                  }))
+                )
+
+                (optionals matchToSubzones
+                  (forEach (childZones toZone) (childZone: {
+                    onExpression = childZone.egressExpression;
+                    jump = toTraverseName fromZone false childZone true;
+                  }))
+                )
+
+                (optional (matchFromSubzones || matchToSubzones) {
+                  jump = toTraverseName fromZone false toZone false;
+                })
+
+                (optionals (!(matchFromSubzones || matchToSubzones))
+                  (perRule (r: zoneInList fromZone r.from && zoneInList toZone r.to) (rule: {
+                    jump = toRuleName rule;
+                  }))
+                )
+
+              ];
+            }
+          ))
+        ));
     in {
 
       input.hook = hookRule "type filter hook input priority 0; policy drop";
@@ -270,8 +285,8 @@ in {
       };
       input.conntrack = conntrackRule;
       input.generated.rules = [
-        { jump = toTraverseName allZone localZone; }
-        { jump = toTraverseContentName allZone allZone; }
+        { jump = toTraverseName allZone true localZone true; }
+        { jump = toTraverseName allZone true allZone false; }
       ];
       input.drop = dropRule;
 
@@ -293,7 +308,7 @@ in {
       forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
       forward.conntrack = conntrackRule;
       forward.generated.rules = [
-        { jump = toTraverseName allZone allZone; }
+        { jump = toTraverseName allZone true allZone true; }
       ];
       forward.drop = dropRule;
 

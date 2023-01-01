@@ -44,7 +44,7 @@ machineTest ({ config, ... }: {
           type filter hook forward priority 0; policy drop;
           ct state {established, related} accept
           ct state invalid drop
-          jump traverse-from-all-to-all
+          jump traverse-from-all-subzones-to-all-subzones-rule
           counter drop
         }
 
@@ -53,7 +53,7 @@ machineTest ({ config, ... }: {
           iifname { lo } accept
           ct state {established, related} accept
           ct state invalid drop
-          jump traverse-from-all-to-fw
+          jump traverse-from-all-subzones-to-fw-subzones-rule
           counter drop
         }
 
@@ -83,84 +83,54 @@ machineTest ({ config, ... }: {
           tcp dport { 22 } accept
         }
 
-        chain traverse-from-a-to-a {
-          iifname { b } jump traverse-from-b-to-a
-          oifname { b } jump traverse-from-a-to-b
+        chain traverse-from-a-subzones-to-all-subzones-rule {
+          iifname { b } jump traverse-from-b-subzones-to-all-subzones-rule
         }
 
-        chain traverse-from-a-to-all {
-          iifname { b } jump traverse-from-b-to-all
-          oifname { a } jump traverse-from-a-to-a
+        chain traverse-from-a-subzones-to-fw-subzones-rule {
+          iifname { b } jump traverse-from-b-subzones-to-fw-subzones-rule
         }
 
-        chain traverse-from-a-to-b {
-          iifname { b } jump traverse-from-b-to-b
+        chain traverse-from-all-subzones-to-all-subzones-rule {
+          iifname { a } jump traverse-from-a-subzones-to-all-subzones-rule
         }
 
-        chain traverse-from-a-to-c {
-          iifname { b } jump traverse-from-b-to-c
+        chain traverse-from-all-subzones-to-fw-subzones-rule {
+          iifname { a } jump traverse-from-a-subzones-to-fw-subzones-rule
+          jump traverse-from-all-zone-to-fw-zone-rule
         }
 
-        chain traverse-from-a-to-fw {
-          iifname { b } jump traverse-from-b-to-fw
-          oifname { c } jump traverse-from-a-to-c
-        }
-
-        chain traverse-from-all-to-a {
-          iifname { a } jump traverse-from-a-to-a
-          oifname { b } jump traverse-from-all-to-b
-        }
-
-        chain traverse-from-all-to-all {
-          iifname { a } jump traverse-from-a-to-all
-          oifname { a } jump traverse-from-all-to-a
-        }
-
-        chain traverse-from-all-to-b {
-          iifname { a } jump traverse-from-a-to-b
-        }
-
-        chain traverse-from-all-to-c {
-          iifname { a } jump traverse-from-a-to-c
-        }
-
-        chain traverse-from-all-to-fw {
-          iifname { a } jump traverse-from-a-to-fw
-          oifname { c } jump traverse-from-all-to-c
-          jump traverse-from-all-to-fw-content
-        }
-
-        chain traverse-from-all-to-fw-content {
+        chain traverse-from-all-zone-to-fw-zone-rule {
           jump rule-ssh
           jump rule-icmp
         }
 
-        chain traverse-from-b-to-a {
-          oifname { b } jump traverse-from-b-to-b
+        chain traverse-from-b-subzones-to-all-subzones-rule {
+          oifname { a } jump traverse-from-b-zone-to-a-subzones-rule
         }
 
-        chain traverse-from-b-to-all {
-          oifname { a } jump traverse-from-b-to-a
+        chain traverse-from-b-subzones-to-fw-subzones-rule {
+          oifname { c } jump traverse-from-b-zone-to-c-subzones-rule
         }
 
-        chain traverse-from-b-to-b {
-          jump traverse-from-b-to-b-content
+        chain traverse-from-b-zone-to-a-subzones-rule {
+          oifname { b } jump traverse-from-b-zone-to-b-subzones-rule
         }
 
-        chain traverse-from-b-to-b-content {
+        chain traverse-from-b-zone-to-b-subzones-rule {
+          jump traverse-from-b-zone-to-b-zone-rule
+        }
+
+        chain traverse-from-b-zone-to-b-zone-rule {
           jump rule-b-to-b
         }
 
-        chain traverse-from-b-to-c {
-          jump traverse-from-b-to-c-content
+        chain traverse-from-b-zone-to-c-subzones-rule {
+          jump traverse-from-b-zone-to-c-zone-rule
         }
 
-        chain traverse-from-b-to-c-content {
+        chain traverse-from-b-zone-to-c-zone-rule {
           jump rule-b-to-c
-        }
-
-        chain traverse-from-b-to-fw {
-          oifname { c } jump traverse-from-b-to-c
         }
 
       }
