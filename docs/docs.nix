@@ -55,7 +55,7 @@ let
       strings.fromJSON
     ];
     renderOptionDoc = name: option: ''
-      ## ${escapeXML name}
+      ### ${escapeXML name}
       ${option.description}
 
       ${optionalString (! isNull option.type or null) "*_Type_*\n```\n${option.type}\n```"}
@@ -75,6 +75,10 @@ let
       config.output = let
         prefixMd = module: content: ''
           # Module ${module}
+          ${let
+            moduleDocs = ./module-${module}.md;
+          in optionalString (pathExists moduleDocs) (fileContents moduleDocs)}
+          ## Options
           ${content}
         '';
         renderModuleDoc = module: pipe (import "${modulesPath}/${module}.nix" flakes args).options [
@@ -104,7 +108,7 @@ let
        :parser: markdown
     .. rubric:: Modules
     .. toctree::
-       :maxdepth: 2
+       :maxdepth: 3
        :glob:
 
        modules/*
@@ -133,6 +137,7 @@ let
     highlight_language = 'nix'
     project = '${repo}';
     html_theme_options = {
+      'github_banner': 'true',
       'github_button': 'true',
       'github_user': '${owner}',
       'github_repo': '${repo}',
