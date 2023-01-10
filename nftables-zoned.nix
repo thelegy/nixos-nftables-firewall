@@ -44,6 +44,16 @@ in {
             type = with types; listOf str;
             default = [];
           };
+          ipv4Addresses = mkOption {
+            type = with types; listOf str;
+            default = [];
+            example = [ "192.168.0.0/24" ];
+          };
+          ipv6Addresses = mkOption {
+            type = with types; listOf str;
+            default = [];
+            example = [ "2042::/16" ];
+          };
           ingressExpression = mkOption {
             type = types.listOf types.str;
             default = [];
@@ -76,9 +86,13 @@ in {
           hasExpressions = (length ingressExpression > 0) && (length egressExpression > 0);
           ingressExpression = mkMerge [
             (mkIf (length interfaces >= 1) [ "iifname { ${concatStringsSep ", " interfaces} }" ])
+            (mkIf (length ipv6Addresses >= 1) [ "ip6 saddr { ${concatStringsSep ", " ipv6Addresses} }" ])
+            (mkIf (length ipv4Addresses >= 1) [ "ip saddr { ${concatStringsSep ", " ipv4Addresses} }" ])
           ];
           egressExpression = mkMerge [
             (mkIf (length interfaces >= 1) [ "oifname { ${concatStringsSep ", " interfaces} }" ])
+            (mkIf (length ipv6Addresses >= 1) [ "ip6 daddr { ${concatStringsSep ", " ipv6Addresses} }" ])
+            (mkIf (length ipv4Addresses >= 1) [ "ip daddr { ${concatStringsSep ", " ipv4Addresses} }" ])
           ];
         };
       });

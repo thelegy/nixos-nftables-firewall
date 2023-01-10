@@ -12,6 +12,8 @@ in with lib; {
 
     testEmpty = import ./testEmpty.nix lib;
 
+    testZoneExpressions = import ./testZoneExpressions.nix lib;
+
     testWebserver = import ./testWebserver.nix lib;
 
     testForward = import ./testForward.nix lib;
