@@ -45,19 +45,19 @@ in {
             default = [];
           };
           ingressExpression = mkOption {
-            type = types.str;
-            default = "";
+            type = types.listOf types.str;
+            default = [];
           };
           egressExpression = mkOption {
-            type = types.str;
-            default = "";
+            type = types.listOf types.str;
+            default = [];
           };
         };
         config = with config; {
           assertions = flatten [
             {
-              assertion = isNull ingressExpression == isNull egressExpression;
-              message = "You need to specify either both, an ingress and egress expression, or none";
+              assertion = length ingressExpression == length egressExpression;
+              message = "You need to specify the same number of ingress and egress expressions";
             }
             {
               assertion = (localZone || hasExpressions) && ! (localZone && hasExpressions);
@@ -73,9 +73,13 @@ in {
             }
           ];
           name = name;
-          hasExpressions = (stringLength ingressExpression > 0) && (stringLength egressExpression > 0);
-          ingressExpression = mkIf (length interfaces >= 1) "iifname { ${concatStringsSep ", " interfaces} }";
-          egressExpression = mkIf (length interfaces >= 1) "oifname { ${concatStringsSep ", " interfaces} }";
+          hasExpressions = (length ingressExpression > 0) && (length egressExpression > 0);
+          ingressExpression = mkMerge [
+            (mkIf (length interfaces >= 1) [ "iifname { ${concatStringsSep ", " interfaces} }" ])
+          ];
+          egressExpression = mkMerge [
+            (mkIf (length interfaces >= 1) [ "oifname { ${concatStringsSep ", " interfaces} }" ])
+          ];
         };
       });
     };
@@ -177,8 +181,8 @@ in {
     allZone = {
       name = "all";
       interfaces = [];
-      ingressExpression = "";
-      egressExpression = "";
+      ingressExpression = [];
+      egressExpression = [];
       localZone = true;
     };
 
@@ -260,17 +264,21 @@ in {
                 value.generated.rules = concatLists [
 
                   (optionals matchFromSubzones
-                    (forEach (childZones fromZone) (childZone: {
-                      onExpression = childZone.ingressExpression;
-                      jump = toTraverseName childZone true toZone matchToSubzones ruleType;
-                    }))
+                    (concatLists (forEach (childZones fromZone) (childZone:
+                      (forEach childZone.ingressExpression (onExpression: {
+                        inherit onExpression;
+                        jump = toTraverseName childZone true toZone matchToSubzones ruleType;
+                      }))
+                    )))
                   )
 
                   (optionals matchToSubzones
-                    (forEach (childZones toZone) (childZone: {
-                      onExpression = childZone.egressExpression;
-                      jump = toTraverseName fromZone false childZone true ruleType;
-                    }))
+                    (concatLists (forEach (childZones toZone) (childZone:
+                      (forEach childZone.egressExpression (onExpression: {
+                        inherit onExpression;
+                        jump = toTraverseName fromZone false childZone true ruleType;
+                      }))
+                    )))
                   )
 
                   (optional (matchFromSubzones || matchToSubzones) {
@@ -312,8 +320,8 @@ in {
         (concatMap (rule: forEach (lookupZones rule.to) (to: rule // { inherit to; })))
         (map (rule: [
           "meta protocol ip"
-          rule.from.ingressExpression
-          rule.to.egressExpression
+          (head rule.from.ingressExpression)
+          (head rule.to.egressExpression)
           "masquerade random"
         ]))
       ];
