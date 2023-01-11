@@ -56,7 +56,7 @@ let
     ];
     renderOptionDoc = name: option: ''
       ### ${escapeXML name}
-      ${option.description}
+      ${replaceStrings [ "<literal>" "</literal>"] [ "`" "`" ] option.description}
 
       ${optionalString (! isNull option.type or null) "*_Type_*\n```\n${option.type}\n```"}
 
