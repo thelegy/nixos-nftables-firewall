@@ -19,7 +19,7 @@ in {
 
     zones = mkOption {
       type = types.dependencyDagOfSubmodule ({ name, config, ... }: {
-        options = {
+        options = rec {
           assertions = mkOption {
             type = with types; listOf attrs;
             internal = true;
@@ -35,32 +35,96 @@ in {
           localZone = mkOption {
             type = types.bool;
             default = false;
+            description = mdDoc ''
+              The local zone is the zone, that matches traffic of the `input`
+              and `output` nft chains.
+
+              There can only exist a single local zone, one is by mkDefault
+              created for convenience with the name `fw`, though you can
+              redefine the zone, if you dislike that name.
+
+              The local zone may not have any `ingressExpression` or
+              `egressExpression` defined.
+            '';
           };
           parent = mkOption {
             type = with types; nullOr str;
             default = null;
+            example = "fw";
+            description = mdDoc ''
+              Additionally to `ingressExpression` and `egressExpression` zones
+              can also be defined as a subzone of another zone. If so, traffic
+              is matched only against the `ingressExpression` and
+              `egressExpression`, if the traffic is already considered to be
+              part of the parent zone.
+
+              If traffic matches a zone, it will first be tested, if it also
+              matches some of its subzones. If so, the logic of the subzones
+              will be called. If not, or if the subzones did not terminate the
+              rule processing with a verdict, the rules of the parent zone will
+              be applied.
+            '';
           };
           interfaces = mkOption {
             type = with types; listOf str;
             default = [];
+            example = literalExpression ''[ "eth0" ]'';
+            description = mdDoc ''
+              Shorthand for defining `ingressExpression` and `egressExpression`
+              using `iifname` and `oifname` respectively.
+
+              This defines the zone as a list of network interfaces.
+            '';
           };
           ipv4Addresses = mkOption {
             type = with types; listOf str;
             default = [];
-            example = [ "192.168.0.0/24" ];
+            example = literalExpression ''[ "192.168.0.0/24" ]'';
+            description = mdDoc ''
+              Shorthand for defining `ingressExpression` and `egressExpression`
+              using `ip saddr` and `ip daddr` respectively.
+
+              This defines the zone as a list of ipv4 hosts or subnets.
+            '';
           };
           ipv6Addresses = mkOption {
             type = with types; listOf str;
             default = [];
-            example = [ "2042::/16" ];
+            example = literalExpression ''[ "2042::/16" ]'';
+            description = mdDoc ''
+              Shorthand for defining `ingressExpression` and `egressExpression`
+              using `ip6 saddr` and `ip6 daddr` respectively.
+
+              This defines the zone as a list of ipv6 hosts or subnets.
+            '';
           };
           ingressExpression = mkOption {
             type = types.listOf types.str;
             default = [];
+            description = mdDoc ''
+              `ingressExpression` and `egressExpression` contain nft-espressions
+              to match traffic, that defines the zone. Traffic matched by the
+              `ingressExpression` is considered originating in the zone, while
+              traffic matched by the `egressExpression` is considered targeting
+              the zone.
+
+              If multiple expressions are given, any one of them matching traffic
+              suffices to consider the traffic as part of the zone. This is used
+              eg. when defining a zone as an ipv4 and ipv6 subnet. No Traffic
+              will ever match both, so one matching expression is considered
+              sufficient.
+
+              `ingressExpression` and `egressExpression` must be balanced, i.e.
+              both lists need to contain the same number of expressions.
+
+              `ingressExpression` and `egressExpression` are mandatory for all
+              zones except the local zone.
+            '';
           };
           egressExpression = mkOption {
             type = types.listOf types.str;
             default = [];
+            description = ingressExpression.description;
           };
         };
         config = with config; {
