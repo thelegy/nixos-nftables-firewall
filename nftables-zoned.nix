@@ -295,23 +295,31 @@ in {
       localZone = mkDefault true;
     };
 
-    networking.nftables.firewall.rules.ssh = {
-      early = true;
-      after = [ "ct" ];
-      from = "all";
-      to = [ "fw" ];
-      allowedTCPPorts = config.services.openssh.ports;
-    };
-    networking.nftables.firewall.rules.icmp = {
-      early = true;
-      after = [ "ct" "ssh" ];
-      from = "all";
-      to = [ "fw" ];
-      extraLines = [
-        "ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept"
-        "ip protocol icmp icmp type { echo-request, router-advertisement } accept"
-        "ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept"
-      ];
+    networking.nftables.firewall.rules = {
+      icmp = {
+        early = true;
+        after = [ "ct" "ssh" ];
+        from = "all";
+        to = [ "fw" ];
+        extraLines = [
+          "ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept"
+          "ip protocol icmp icmp type { echo-request, router-advertisement } accept"
+          "ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept"
+        ];
+      };
+      nixos-firewall = {
+        from = "all";
+        to = [ "fw" ];
+        allowedTCPPorts = config.networking.firewall.allowedTCPPorts;
+        allowedUDPPorts = config.networking.firewall.allowedUDPPorts;
+      };
+      ssh = {
+        early = true;
+        after = [ "ct" ];
+        from = "all";
+        to = [ "fw" ];
+        allowedTCPPorts = config.services.openssh.ports;
+      };
     };
 
     networking.nftables.chains = let
