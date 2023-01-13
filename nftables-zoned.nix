@@ -308,7 +308,7 @@ in {
         ];
       };
       nixos-firewall = {
-        from = "all";
+        from = mkDefault "all";
         to = [ "fw" ];
         allowedTCPPorts = config.networking.firewall.allowedTCPPorts;
         allowedUDPPorts = config.networking.firewall.allowedUDPPorts;
