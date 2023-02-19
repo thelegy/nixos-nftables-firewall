@@ -8,12 +8,24 @@ with lfinal;
 
   run-tests = tests:
     let
+      pkgs = nixpkgs.legacyPackages.${system};
       testResults = runTests tests;
+      showResults = result: readFile (pkgs.runCommand "${result.name}-diff" {} ''
+        ${pkgs.git}/bin/git diff \
+          --color=always \
+          --color-moved \
+          --output=$out \
+          --src-prefix=/ \
+          --dst-prefix=/ \
+          ${pkgs.writeText "${result.name}-expected" result.expected} \
+          ${pkgs.writeText "${result.name}-result" result.result} \
+          || true
+        '');
     in
     if length testResults > 0 then
-      traceSeqN 10 testResults (throw "At least one tests did not match its expected outcome")
+      traceSeqN 10 (map showResults testResults) (throw "At least one tests did not match its expected output")
     else
-      nixpkgs.legacyPackages.${system}.emptyDirectory;
+      pkgs.emptyDirectory;
 
     machineTest = module:
     let
