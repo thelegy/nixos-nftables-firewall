@@ -43,8 +43,7 @@ machineTest ({ config, ... }: {
           ct state {established, related} accept
           ct state invalid drop
           jump traverse-from-all-subzones-to-fw-subzones-rule
-          jump traverse-from-all-subzones-to-all-zone-rule
-          jump traverse-from-all-subzones-to-all-zone-policy
+          jump traverse-from-all-subzones-to-fw-subzones-policy
           counter drop
         }
 
@@ -82,16 +81,13 @@ machineTest ({ config, ... }: {
           jump traverse-from-all-zone-to-all-zone-rule
         }
 
-        chain traverse-from-all-subzones-to-all-zone-policy {
+        chain traverse-from-all-subzones-to-fw-subzones-policy {
           jump traverse-from-all-zone-to-all-zone-policy
-        }
-
-        chain traverse-from-all-subzones-to-all-zone-rule {
-          jump traverse-from-all-zone-to-all-zone-rule
         }
 
         chain traverse-from-all-subzones-to-fw-subzones-rule {
           jump traverse-from-all-zone-to-fw-zone-rule
+          jump traverse-from-all-zone-to-all-zone-rule
         }
 
         chain traverse-from-all-zone-to-all-zone-policy {

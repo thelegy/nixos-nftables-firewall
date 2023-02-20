@@ -261,7 +261,7 @@ in {
       interfaces = [];
       ingressExpression = [];
       egressExpression = [];
-      localZone = true;
+      localZone = false;
     };
 
     lookupZones = zoneNames: if zoneNames == "all" then singleton allZone else map (x: zones.${x}) zoneNames;
@@ -377,6 +377,14 @@ in {
                     }))
                   )
 
+                  (optional (matchFromSubzones && matchToSubzones && fromZone.localZone) {
+                    jump = toTraverseName allZone false toZone false ruleType;
+                  })
+
+                  (optional (matchFromSubzones && matchToSubzones && toZone.localZone) {
+                    jump = toTraverseName fromZone false allZone false ruleType;
+                  })
+
                 ];
               }
             ))
@@ -391,10 +399,9 @@ in {
         rules = singleton "iifname { lo } accept";
       };
       input.conntrack = conntrackRule;
-      input.generated.rules = concatLists (forEach ruleTypes (ruleType: [
+      input.generated.rules = forEach ruleTypes (ruleType:
         { jump = toTraverseName allZone true localZone true ruleType; }
-        { jump = toTraverseName allZone true allZone false ruleType; }
-      ]));
+      );
       input.drop = dropRule;
 
       prerouting.hook = hookRule "type nat hook prerouting priority dstnat;";
