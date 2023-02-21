@@ -32,8 +32,8 @@ machineTest ({ config, ... }: {
           type filter hook forward priority 0; policy drop;
           ct state {established, related} accept
           ct state invalid drop
-          jump rule-rule
-          jump rule-policy
+          accept
+          accept
           counter drop
         }
 
@@ -43,7 +43,7 @@ machineTest ({ config, ... }: {
           ct state {established, related} accept
           ct state invalid drop
           jump traverse-from-all-subzones-to-fw-subzones-rule
-          jump rule-policy
+          accept
           counter drop
         }
 
@@ -61,21 +61,13 @@ machineTest ({ config, ... }: {
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
         }
 
-        chain rule-policy {
-          accept
-        }
-
-        chain rule-rule {
-          accept
-        }
-
         chain rule-ssh {
           tcp dport { 22 } accept
         }
 
         chain traverse-from-all-subzones-to-fw-subzones-rule {
           jump traverse-from-all-zone-to-fw-zone-rule
-          jump rule-rule
+          accept
         }
 
         chain traverse-from-all-zone-to-fw-zone-rule {

@@ -16,13 +16,15 @@ machineTest ({ config, ... }: {
       { onExpression = "iifname inlinable-jump"; jump = "inlinable"; }
       { onExpression = "iifname multiple-jump"; jump = "multiple"; }
       { onExpression = "iifname indirect1-jump"; jump = "indirect1"; }
+      { onExpression = "iifname accept-jump"; jump = "accept"; }
     ];
 
+    accept.a.rules = [ "accept" ];
     empty.a.rules = [ ];
-    single.a.rules = [ "accept" ];
-    inlinable.a.rules = [ "accept" ];
+    single.a.rules = [ "foo" ];
+    inlinable.a.rules = [ "foo" ];
     indirect1.a.rules = [ { onExpression = "iifname indirect2"; jump = "indirect2"; } ];
-    indirect2.a.rules = [ "accept" ];
+    indirect2.a.rules = [ "foo" ];
     multiple.a.rules = [
       "tcp dport 22 accept"
       "counter drop"
@@ -40,11 +42,11 @@ machineTest ({ config, ... }: {
         }
 
         chain indirect2 {
-          accept
+          foo
         }
 
         chain inlinable {
-          accept
+          foo
         }
 
         chain input {
@@ -54,6 +56,7 @@ machineTest ({ config, ... }: {
           iifname inlinable-jump jump inlinable
           iifname multiple-jump jump multiple
           iifname indirect1-jump iifname indirect2 jump indirect2
+          iifname accept-jump accept
         }
 
         chain multiple {
@@ -62,7 +65,7 @@ machineTest ({ config, ... }: {
         }
 
         chain single {
-          accept
+          foo
         }
 
       }

@@ -56,7 +56,7 @@ let
       renderRule = segments: concatStringsSep " " (filter (x: x != "") segments);
     in {
       isJump = ! isNull r.jump;
-      inlinable = mkIf (isGoto || r.isJump) true;
+      inlinable = mkIf (isGoto || r.isJump || elem r.text ["accept" "drop" "queue"]) true;
       text = mkMerge [
         (mkIf isGoto (renderRule [ r.onExpression "goto" r.goto]))
         (mkIf r.isJump (renderRule [ r.onExpression "jump" r.jump]))
@@ -77,7 +77,7 @@ let
         inlinable = (length targetChain) == 1 && inlineableRule.inlinable;
         inlinedRule = simplifyRule
           (renderRule [ r.onExpression inlineableRule.processedRule.text ])
-          inlineableRule.processedRule.deps;
+          (inlineableRule.processedRule.deps or []);
         jumpRule = if chainRules.${r.jump} == []
           then {}
           else if inlinable
