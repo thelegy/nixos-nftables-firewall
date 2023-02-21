@@ -69,24 +69,12 @@ machineTest ({ config, ... }: {
           udp dport { 42, 1337 } accept
         }
 
-        chain rule-nose {
-          tcp dport { 555 } accept
-        }
-
-        chain rule-range {
-          udp dport { 60000-62000 } accept
-        }
-
-        chain rule-ssh {
-          tcp dport { 22 } accept
-        }
-
         chain traverse-from-all-zone-to-fw-zone-rule {
-          jump rule-ssh
+          tcp dport { 22 } accept  # inlined: rule-ssh
           jump rule-icmp
           jump rule-multiple
-          jump rule-nose
-          jump rule-range
+          tcp dport { 555 } accept  # inlined: rule-nose
+          udp dport { 60000-62000 } accept  # inlined: rule-range
         }
 
       }

@@ -58,8 +58,8 @@ let
       isJump = ! isNull r.jump;
       inlinable = mkIf (isGoto || r.isJump || elem r.text ["accept" "drop" "queue"]) true;
       text = mkMerge [
-        (mkIf isGoto (renderRule [ r.onExpression "goto" r.goto]))
-        (mkIf r.isJump (renderRule [ r.onExpression "jump" r.jump]))
+        (mkIf isGoto (renderRule [ "goto" r.goto]))
+        (mkIf r.isJump (renderRule [ "jump" r.jump]))
       ];
       chainDependencies = mkMerge [
         (mkIf isGoto [ r.goto ])
@@ -67,17 +67,20 @@ let
       ];
 
       processedRule = let
-        simplifyRule = text: deps: {
+        simplifyRule = text: deps: comment: {
           text = mkIf (text != "") text;
           deps = mkIf (deps != []) deps;
+          comment = mkIf (comment != "") comment;
         };
-        textRule = simplifyRule r.text r.chainDependencies;
+        textRule = simplifyRule (renderRule [ r.onExpression r.text ]) r.chainDependencies "";
         targetChain = (filter (x: x.processedRule.text or "" != "")) chains.${r.jump};
         inlineableRule = head targetChain;
         inlinable = (length targetChain) == 1 && inlineableRule.inlinable;
+        comment = if inlineableRule.isJump then "" else "inlined: ${r.jump}";
         inlinedRule = simplifyRule
           (renderRule [ r.onExpression inlineableRule.processedRule.text ])
-          (inlineableRule.processedRule.deps or []);
+          (inlineableRule.processedRule.deps or [])
+          (inlineableRule.processedRule.comment or comment);
         jumpRule = if chainRules.${r.jump} == []
           then {}
           else if inlinable
@@ -134,8 +137,8 @@ in {
     inherit chainRules;
 
     renderedChains = mapAttrs (k: v: pipe v [
-      (map (x: x.text or ""))
-      (filter (x: x != ""))
+      (filter (x: x.text or "" != ""))
+      (map (x: "${x.text}${if x.comment or "" != "" then "  # ${x.comment}" else ""}"))
       (x: "  chain ${k} {${concatMapStrings (y: "\n    ${y}") x}\n  }")
     ]) chainRules;
 

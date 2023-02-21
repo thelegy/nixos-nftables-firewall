@@ -49,23 +49,15 @@ machineTest ({ config, ... }: {
           type nat hook prerouting priority dstnat;
         }
 
-        chain rule-a-to-b {
-          tcp dport { 42 } accept
-        }
-
         chain rule-icmp {
           ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
           ip protocol icmp icmp type { echo-request, router-advertisement } accept
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
         }
 
-        chain rule-ssh {
-          tcp dport { 22 } accept
-        }
-
         chain traverse-from-a-subzones-to-all-subzones-rule {
-          ip6 daddr { 1234:: } jump rule-a-to-b
-          ip daddr { 1.2.3.4 } jump rule-a-to-b
+          ip6 daddr { 1234:: } tcp dport { 42 } accept  # inlined: rule-a-to-b
+          ip daddr { 1.2.3.4 } tcp dport { 42 } accept  # inlined: rule-a-to-b
         }
 
         chain traverse-from-all-subzones-to-all-subzones-rule {
@@ -74,7 +66,7 @@ machineTest ({ config, ... }: {
         }
 
         chain traverse-from-all-zone-to-fw-zone-rule {
-          jump rule-ssh
+          tcp dport { 22 } accept  # inlined: rule-ssh
           jump rule-icmp
         }
 

@@ -56,7 +56,7 @@ machineTest ({ config, ... }: {
           iifname inlinable-jump jump inlinable
           iifname multiple-jump jump multiple
           iifname indirect1-jump iifname indirect2 jump indirect2
-          iifname accept-jump accept
+          iifname accept-jump accept  # inlined: accept
         }
 
         chain multiple {

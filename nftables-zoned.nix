@@ -444,8 +444,8 @@ in {
           allowedTCPPorts = rule.allowedTCPPorts ++ forEach rule.allowedTCPPortRanges formatPortRange;
           allowedUDPPorts = rule.allowedUDPPorts ++ forEach rule.allowedUDPPortRanges formatPortRange;
         in [
-          (optionalString (allowedTCPPorts!=[]) "tcp dport ${toPortList allowedTCPPorts} accept")
-          (optionalString (allowedUDPPorts!=[]) "udp dport ${toPortList allowedUDPPorts} accept")
+          (optionalString (allowedTCPPorts!=[]) { onExpression = "tcp dport ${toPortList allowedTCPPorts}"; text = "accept"; })
+          (optionalString (allowedUDPPorts!=[]) { onExpression = "udp dport ${toPortList allowedUDPPorts}"; text = "accept"; })
           (optionalString (rule.verdict!=null) rule.verdict)
         ] ++ rule.extraLines;
       }))

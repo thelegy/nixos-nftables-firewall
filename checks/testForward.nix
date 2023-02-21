@@ -68,43 +68,27 @@ machineTest ({ config, ... }: {
           type nat hook prerouting priority dstnat;
         }
 
-        chain rule-forward {
-          tcp dport { 22 } accept
-        }
-
-        chain rule-from-all {
-          tcp dport { 25 } accept
-        }
-
-        chain rule-from-to-all {
-          tcp dport { 42 } accept
-        }
-
         chain rule-icmp {
           ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
           ip protocol icmp icmp type { echo-request, router-advertisement } accept
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
         }
 
-        chain rule-to-all {
-          tcp dport { 80 } accept
-        }
-
         chain traverse-from-a-subzones-to-all-subzones-rule {
-          oifname { b } jump rule-forward
-          jump rule-to-all
+          oifname { b } tcp dport { 22 } accept  # inlined: rule-forward
+          tcp dport { 80 } accept  # inlined: rule-to-all
         }
 
         chain traverse-from-all-subzones-to-all-subzones-rule {
           iifname { a } jump traverse-from-a-subzones-to-all-subzones-rule
-          oifname { b } jump rule-from-all
-          jump rule-from-to-all
+          oifname { b } tcp dport { 25 } accept  # inlined: rule-from-all
+          tcp dport { 42 } accept  # inlined: rule-from-to-all
         }
 
         chain traverse-from-all-subzones-to-fw-subzones-rule {
-          iifname { a } jump rule-to-all
+          iifname { a } tcp dport { 80 } accept  # inlined: rule-to-all
           jump rule-icmp
-          jump rule-from-to-all
+          tcp dport { 42 } accept  # inlined: rule-from-to-all
         }
 
       }

@@ -54,12 +54,8 @@ machineTest ({ config, ... }: {
           ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
         }
 
-        chain rule-ssh {
-          tcp dport { 22 } accept
-        }
-
         chain traverse-from-all-zone-to-fw-zone-rule {
-          jump rule-ssh
+          tcp dport { 22 } accept  # inlined: rule-ssh
           jump rule-icmp
         }
 
