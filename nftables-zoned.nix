@@ -226,7 +226,7 @@ in {
             internal = true;
           };
           extraLines = mkOption {
-            type = types.listOf config.build.nftables-ruleType;
+            type = types.listOf types.str;
             default = [];
           };
         };
@@ -411,7 +411,7 @@ in {
         (filter (x: x.masquerade or false))
         (concatMap (rule: forEach (lookupZones rule.from) (from: rule // { inherit from; })))
         (concatMap (rule: forEach (lookupZones rule.to) (to: rule // { inherit to; })))
-        (map (rule: [
+        (map (rule: concatStringsSep " " [
           "meta protocol ip"
           (head rule.from.ingressExpression)
           (head rule.to.egressExpression)
