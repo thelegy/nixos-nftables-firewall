@@ -37,7 +37,7 @@ machineTest ({ config, ... }: {
           iifname { lo } accept
           ct state {established, related} accept
           ct state invalid drop
-          jump traverse-from-all-subzones-to-fw-subzones-rule
+          jump traverse-from-all-zone-to-fw-zone-rule
           counter drop
         }
 
@@ -64,25 +64,13 @@ machineTest ({ config, ... }: {
         }
 
         chain traverse-from-a-subzones-to-all-subzones-rule {
-          ip6 daddr { 1234:: } jump traverse-from-a-zone-to-b-subzones-rule
-          ip daddr { 1.2.3.4 } jump traverse-from-a-zone-to-b-subzones-rule
-        }
-
-        chain traverse-from-a-zone-to-b-subzones-rule {
-          jump traverse-from-a-zone-to-b-zone-rule
-        }
-
-        chain traverse-from-a-zone-to-b-zone-rule {
-          jump rule-a-to-b
+          ip6 daddr { 1234:: } jump rule-a-to-b
+          ip daddr { 1.2.3.4 } jump rule-a-to-b
         }
 
         chain traverse-from-all-subzones-to-all-subzones-rule {
           iifname { a } jump traverse-from-a-subzones-to-all-subzones-rule
           ip saddr { 192.168.1.0/24 } jump traverse-from-a-subzones-to-all-subzones-rule
-        }
-
-        chain traverse-from-all-subzones-to-fw-subzones-rule {
-          jump traverse-from-all-zone-to-fw-zone-rule
         }
 
         chain traverse-from-all-zone-to-fw-zone-rule {

@@ -35,7 +35,7 @@ machineTest ({ config, ... }: {
           iifname { lo } accept
           ct state {established, related} accept
           ct state invalid drop
-          jump traverse-from-all-subzones-to-fw-subzones-rule
+          jump traverse-from-all-zone-to-fw-zone-rule
           counter drop
         }
 
@@ -56,10 +56,6 @@ machineTest ({ config, ... }: {
 
         chain rule-ssh {
           tcp dport { 22 } accept
-        }
-
-        chain traverse-from-all-subzones-to-fw-subzones-rule {
-          jump traverse-from-all-zone-to-fw-zone-rule
         }
 
         chain traverse-from-all-zone-to-fw-zone-rule {

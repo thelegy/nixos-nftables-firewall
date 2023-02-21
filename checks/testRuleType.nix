@@ -32,8 +32,8 @@ machineTest ({ config, ... }: {
           type filter hook forward priority 0; policy drop;
           ct state {established, related} accept
           ct state invalid drop
-          jump traverse-from-all-subzones-to-all-subzones-rule
-          jump traverse-from-all-subzones-to-all-subzones-policy
+          jump rule-rule
+          jump rule-policy
           counter drop
         }
 
@@ -43,7 +43,7 @@ machineTest ({ config, ... }: {
           ct state {established, related} accept
           ct state invalid drop
           jump traverse-from-all-subzones-to-fw-subzones-rule
-          jump traverse-from-all-subzones-to-fw-subzones-policy
+          jump rule-policy
           counter drop
         }
 
@@ -73,28 +73,8 @@ machineTest ({ config, ... }: {
           tcp dport { 22 } accept
         }
 
-        chain traverse-from-all-subzones-to-all-subzones-policy {
-          jump traverse-from-all-zone-to-all-zone-policy
-        }
-
-        chain traverse-from-all-subzones-to-all-subzones-rule {
-          jump traverse-from-all-zone-to-all-zone-rule
-        }
-
-        chain traverse-from-all-subzones-to-fw-subzones-policy {
-          jump traverse-from-all-zone-to-all-zone-policy
-        }
-
         chain traverse-from-all-subzones-to-fw-subzones-rule {
           jump traverse-from-all-zone-to-fw-zone-rule
-          jump traverse-from-all-zone-to-all-zone-rule
-        }
-
-        chain traverse-from-all-zone-to-all-zone-policy {
-          jump rule-policy
-        }
-
-        chain traverse-from-all-zone-to-all-zone-rule {
           jump rule-rule
         }
 

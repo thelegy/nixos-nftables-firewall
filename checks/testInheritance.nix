@@ -44,7 +44,7 @@ machineTest ({ config, ... }: {
           type filter hook forward priority 0; policy drop;
           ct state {established, related} accept
           ct state invalid drop
-          jump traverse-from-all-subzones-to-all-subzones-rule
+          iifname { a } iifname { b } oifname { a } oifname { b } jump rule-b-to-b
           counter drop
         }
 
@@ -83,54 +83,14 @@ machineTest ({ config, ... }: {
           tcp dport { 22 } accept
         }
 
-        chain traverse-from-a-subzones-to-all-subzones-rule {
-          iifname { b } jump traverse-from-b-subzones-to-all-subzones-rule
-        }
-
-        chain traverse-from-a-subzones-to-fw-subzones-rule {
-          iifname { b } jump traverse-from-b-subzones-to-fw-subzones-rule
-        }
-
-        chain traverse-from-all-subzones-to-all-subzones-rule {
-          iifname { a } jump traverse-from-a-subzones-to-all-subzones-rule
-        }
-
         chain traverse-from-all-subzones-to-fw-subzones-rule {
-          iifname { a } jump traverse-from-a-subzones-to-fw-subzones-rule
+          iifname { a } iifname { b } oifname { c } jump rule-b-to-c
           jump traverse-from-all-zone-to-fw-zone-rule
         }
 
         chain traverse-from-all-zone-to-fw-zone-rule {
           jump rule-ssh
           jump rule-icmp
-        }
-
-        chain traverse-from-b-subzones-to-all-subzones-rule {
-          oifname { a } jump traverse-from-b-zone-to-a-subzones-rule
-        }
-
-        chain traverse-from-b-subzones-to-fw-subzones-rule {
-          oifname { c } jump traverse-from-b-zone-to-c-subzones-rule
-        }
-
-        chain traverse-from-b-zone-to-a-subzones-rule {
-          oifname { b } jump traverse-from-b-zone-to-b-subzones-rule
-        }
-
-        chain traverse-from-b-zone-to-b-subzones-rule {
-          jump traverse-from-b-zone-to-b-zone-rule
-        }
-
-        chain traverse-from-b-zone-to-b-zone-rule {
-          jump rule-b-to-b
-        }
-
-        chain traverse-from-b-zone-to-c-subzones-rule {
-          jump traverse-from-b-zone-to-c-zone-rule
-        }
-
-        chain traverse-from-b-zone-to-c-zone-rule {
-          jump rule-b-to-c
         }
 
       }

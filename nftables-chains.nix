@@ -41,36 +41,48 @@ let
         type = types.bool;
         internal = true;
       };
+      inlinable = mkOption {
+        type = types.bool;
+        default = false;
+      };
       processedRule = mkOption {
         type = types.anything;
         internal = true;
       };
     };
     config = let
-      isGoto = ! isNull config.goto;
+      r = config;
+      isGoto = ! isNull r.goto;
       renderRule = segments: concatStringsSep " " (filter (x: x != "") segments);
     in {
-      isJump = ! isNull config.jump;
+      isJump = ! isNull r.jump;
+      inlinable = mkIf (isGoto || r.isJump) true;
       text = mkMerge [
-        (mkIf isGoto (renderRule [ config.onExpression "goto" config.goto]))
-        (mkIf config.isJump (renderRule [ config.onExpression "jump" config.jump]))
+        (mkIf isGoto (renderRule [ r.onExpression "goto" r.goto]))
+        (mkIf r.isJump (renderRule [ r.onExpression "jump" r.jump]))
       ];
       chainDependencies = mkMerge [
-        (mkIf isGoto [ config.goto ])
-        (mkIf config.isJump [ config.jump ])
+        (mkIf isGoto [ r.goto ])
+        (mkIf r.isJump [ r.jump ])
       ];
 
       processedRule = let
-        r = config;
-        textRule = {
-          text = mkIf (r.text != "") r.text;
-          deps = mkIf (r.chainDependencies != []) r.chainDependencies;
+        simplifyRule = text: deps: {
+          text = mkIf (text != "") text;
+          deps = mkIf (deps != []) deps;
         };
-        targetChain = chains.${r.jump};
-        targetChainRules = chainRules.${r.jump};
-        jumpRule = if targetChainRules == []
+        textRule = simplifyRule r.text r.chainDependencies;
+        targetChain = (filter (x: x.processedRule.text or "" != "")) chains.${r.jump};
+        inlineableRule = head targetChain;
+        inlinable = (length targetChain) == 1 && inlineableRule.inlinable;
+        inlinedRule = simplifyRule
+          (renderRule [ r.onExpression inlineableRule.processedRule.text ])
+          inlineableRule.processedRule.deps;
+        jumpRule = if chainRules.${r.jump} == []
           then {}
-          else textRule;
+          else if inlinable
+            then inlinedRule
+            else textRule;
       in if r.isJump then jumpRule else textRule;
     };
   });

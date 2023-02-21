@@ -91,52 +91,20 @@ machineTest ({ config, ... }: {
         }
 
         chain traverse-from-a-subzones-to-all-subzones-rule {
-          oifname { b } jump traverse-from-a-zone-to-b-subzones-rule
-          jump traverse-from-a-zone-to-all-zone-rule
-        }
-
-        chain traverse-from-a-subzones-to-fw-subzones-rule {
-          jump traverse-from-a-zone-to-all-zone-rule
-        }
-
-        chain traverse-from-a-zone-to-all-zone-rule {
+          oifname { b } jump rule-forward
           jump rule-to-all
-        }
-
-        chain traverse-from-a-zone-to-b-subzones-rule {
-          jump traverse-from-a-zone-to-b-zone-rule
-        }
-
-        chain traverse-from-a-zone-to-b-zone-rule {
-          jump rule-forward
         }
 
         chain traverse-from-all-subzones-to-all-subzones-rule {
           iifname { a } jump traverse-from-a-subzones-to-all-subzones-rule
-          oifname { b } jump traverse-from-all-zone-to-b-subzones-rule
-          jump traverse-from-all-zone-to-all-zone-rule
-        }
-
-        chain traverse-from-all-subzones-to-fw-subzones-rule {
-          iifname { a } jump traverse-from-a-subzones-to-fw-subzones-rule
-          jump traverse-from-all-zone-to-fw-zone-rule
-          jump traverse-from-all-zone-to-all-zone-rule
-        }
-
-        chain traverse-from-all-zone-to-all-zone-rule {
+          oifname { b } jump rule-from-all
           jump rule-from-to-all
         }
 
-        chain traverse-from-all-zone-to-b-subzones-rule {
-          jump traverse-from-all-zone-to-b-zone-rule
-        }
-
-        chain traverse-from-all-zone-to-b-zone-rule {
-          jump rule-from-all
-        }
-
-        chain traverse-from-all-zone-to-fw-zone-rule {
+        chain traverse-from-all-subzones-to-fw-subzones-rule {
+          iifname { a } jump rule-to-all
           jump rule-icmp
+          jump rule-from-to-all
         }
 
       }
