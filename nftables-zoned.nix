@@ -14,6 +14,17 @@ in {
   options.networking.nftables.firewall = {
     enable = mkEnableOption (mdDoc "the zoned nftables based firewall");
 
+    localZoneName = mkOption {
+      type = types.str;
+      default = "fw";
+      description = mdDoc ''
+        A zone using this name will be defined that matches the traffic of the
+        `input` and `output` nft chains. This zone must not be changed. If you
+        need to further devide the traffic you can define new zones, that have
+        this zone set as their parent.
+      '';
+    };
+
     zones = mkOption {
       type = types.dependencyDagOfSubmodule ({
         name,
@@ -36,22 +47,12 @@ in {
           localZone = mkOption {
             type = types.bool;
             default = false;
-            description = mdDoc ''
-              The local zone is the zone, that matches traffic of the `input`
-              and `output` nft chains.
-
-              There can only exist a single local zone, one is by mkDefault
-              created for convenience with the name `fw`, though you can
-              redefine the zone, if you dislike that name.
-
-              The local zone may not have any `ingressExpression` or
-              `egressExpression` defined.
-            '';
+            internal = true;
           };
           parent = mkOption {
             type = with types; nullOr str;
             default = null;
-            example = "fw";
+            example = literalExpression "config.networking.nftables.firewall.localZoneName";
             description = mdDoc ''
               Additionally to `ingressExpression` and `egressExpression` zones
               can also be defined as a subzone of another zone. If so, traffic
@@ -299,10 +300,17 @@ in {
           assertion = (count (x: x.localZone) sortedZones) == 1;
           message = "There needs to exist exactly one localZone.";
         }
+        {
+          assertion = cfg.zones.${cfg.localZoneName}.localZone or false;
+          message = ''
+            Renaming the localzone is unsupported now.
+            Please use `networking.nftables.firewall.localZoneName` instead.
+          '';
+        }
       ];
 
-      networking.nftables.firewall.zones.fw = {
-        localZone = mkDefault true;
+      networking.nftables.firewall.zones.${cfg.localZoneName} = {
+        localZone = true;
       };
 
       networking.nftables.firewall.rules = {
@@ -310,7 +318,7 @@ in {
           early = true;
           after = ["ct" "ssh"];
           from = "all";
-          to = ["fw"];
+          to = [cfg.localZoneName];
           extraLines = [
             "ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept"
             "ip protocol icmp icmp type { echo-request, router-advertisement } accept"
@@ -319,7 +327,7 @@ in {
         };
         nixos-firewall = {
           from = mkDefault "all";
-          to = ["fw"];
+          to = [cfg.localZoneName];
           allowedTCPPorts = config.networking.firewall.allowedTCPPorts;
           allowedUDPPorts = config.networking.firewall.allowedUDPPorts;
         };
@@ -327,7 +335,7 @@ in {
           early = true;
           after = ["ct"];
           from = "all";
-          to = ["fw"];
+          to = [cfg.localZoneName];
           allowedTCPPorts = config.services.openssh.ports;
         };
       };
