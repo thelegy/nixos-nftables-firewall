@@ -105,18 +105,8 @@ in {
         #  src = rulesScript rulesetFile name;
         #  preferLocalBuild = true;
         #} "${pkgs.nftables}/bin/nft -f $src -c && cp $src $out";
-        checkScript = rulesetFile: name:
-          pkgs.writeScript "nftables-${name}check" ''
-            #! ${pkgs.runtimeShell} -e
-            if $(cat /proc/modules | grep -q ip_tables); then
-              echo "Unload ip_tables before using nftables!" 1>&2
-              exit 1
-            else
-              ${rulesScript rulesetFile name}
-            fi
-          '';
-        startScript = checkScript rulesetFile "";
-        stopScript = checkScript cfg.stopRulesetFile "stop";
+        startScript = rulesScript rulesetFile "";
+        stopScript = rulesScript cfg.stopRulesetFile "stop";
       in {
         Type = "oneshot";
         RemainAfterExit = true;
