@@ -16,12 +16,13 @@
 
       default = nftables-zoned;
 
-      full = with nixpkgs.lib;
-        warn (concatStringsSep " " [
+      full = with nixpkgs.lib; let
+        msg = concatStringsSep " " [
           "The nixos-nftables-firewall 'full' module has been deprecated,"
           "please use the 'default' module instead."
-        ])
-        nftables-zoned;
+        ];
+      in
+        {...}: warn msg {imports = [default];};
     };
 
     checks.x86_64-linux = import ./checks "x86_64-linux" flakes;
