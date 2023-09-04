@@ -13,8 +13,9 @@
       nftables = import ./nftables.nix flakes;
       nftables-chains = import ./nftables-chains.nix flakes;
       nftables-zoned = import ./nftables-zoned.nix flakes;
+      nftables-sections = import ./nftables-sections.nix flakes;
 
-      default = nftables-zoned;
+      default = nftables-sections;
 
       full = with nixpkgs.lib; let
         msg = concatStringsSep " " [
