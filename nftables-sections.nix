@@ -55,6 +55,10 @@ in {
     stock-ssh = {
       enable = mkEnableOption (mdDoc "the stock-ssh firewall section");
     };
+
+    stock-nixos-firewall = {
+      enable = mkEnableOption (mdDoc "the stock-nixos-firewall firewall section");
+    };
   };
 
   config = mkMerge [
@@ -66,6 +70,7 @@ in {
         stock-dhcpv6.enable = true;
         stock-icmp.enable = true;
         stock-ssh.enable = true;
+        stock-nixos-firewall.enable = true;
       };
     })
 
@@ -138,6 +143,15 @@ in {
         from = "all";
         to = [localZoneName];
         allowedTCPPorts = config.services.openssh.ports;
+      };
+    })
+
+    (mkIf cfg.stock-nixos-firewall.enable {
+      networking.nftables.firewall.rules.nixos-firewall = {
+        from = mkDefault "all";
+        to = [localZoneName];
+        allowedTCPPorts = config.networking.firewall.allowedTCPPorts;
+        allowedUDPPorts = config.networking.firewall.allowedUDPPorts;
       };
     })
   ];
