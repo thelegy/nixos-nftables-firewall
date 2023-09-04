@@ -21,7 +21,6 @@ machineTest ({config, ...}: {
 
         chain input {
           type filter hook input priority 0; policy drop
-          tcp dport { 22 } accept  # inlined: rule-ssh
         }
 
         chain postrouting {
