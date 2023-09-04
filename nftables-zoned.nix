@@ -314,17 +314,6 @@ in {
       };
 
       networking.nftables.firewall.rules = {
-        icmp = {
-          early = true;
-          after = ["ct" "ssh"];
-          from = "all";
-          to = [cfg.localZoneName];
-          extraLines = [
-            "ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept"
-            "ip protocol icmp icmp type { echo-request, router-advertisement } accept"
-            "ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept"
-          ];
-        };
         nixos-firewall = {
           from = mkDefault "all";
           to = [cfg.localZoneName];

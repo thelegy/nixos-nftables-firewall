@@ -7,6 +7,8 @@ in
 
       testEmpty = import ./testEmpty.nix lib;
 
+      testCommon = import ./testCommon.nix lib;
+
       testZoneExpressions = import ./testZoneExpressions.nix lib;
 
       testWebserver = import ./testWebserver.nix lib;

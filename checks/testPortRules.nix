@@ -69,12 +69,6 @@ machineTest ({config, ...}: {
           type nat hook prerouting priority dstnat;
         }
 
-        chain rule-icmp {
-          ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
-          ip protocol icmp icmp type { echo-request, router-advertisement } accept
-          ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
-        }
-
         chain rule-multiple {
           tcp dport { 42000-42004, 42005-62009 } accept
           udp dport { 42, 1337 } accept
@@ -82,7 +76,6 @@ machineTest ({config, ...}: {
 
         chain traverse-from-all-zone-to-fw-zone-rule {
           tcp dport { 22 } accept  # inlined: rule-ssh
-          jump rule-icmp
           jump rule-multiple
           tcp dport { 555 } accept  # inlined: rule-nose
           udp dport { 60000-62000 } accept  # inlined: rule-range
