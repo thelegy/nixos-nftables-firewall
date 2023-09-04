@@ -18,6 +18,10 @@ in {
       enable = mkEnableOption (mdDoc "the stock-common firewall section");
     };
 
+    stock-conntrack = {
+      enable = mkEnableOption (mdDoc "the stock-conntrack firewall section");
+    };
+
     stock-drop = {
       enable = mkEnableOption (mdDoc "the stock-drop firewall section");
     };
@@ -48,9 +52,26 @@ in {
   config = mkMerge [
     (mkIf cfg.stock-common.enable {
       networking.nftables.firewall.sections = {
+        stock-conntrack.enable = true;
         stock-drop.enable = true;
         stock-dhcpv6.enable = true;
         stock-icmp.enable = true;
+      };
+    })
+
+    (mkIf cfg.stock-conntrack.enable {
+      networking.nftables.chains = let
+        conntrackRule = {
+          after = mkForce ["veryEarly"];
+          before = ["early"];
+          rules = [
+            "ct state {established, related} accept"
+            "ct state invalid drop"
+          ];
+        };
+      in {
+        input.conntrack = conntrackRule;
+        forward.conntrack = conntrackRule;
       };
     })
 
