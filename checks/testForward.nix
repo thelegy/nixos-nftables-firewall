@@ -50,7 +50,6 @@ machineTest ({config, ...}: {
 
         chain input {
           type filter hook input priority 0; policy drop
-          iifname { lo } accept
           jump traverse-from-all-subzones-to-fw-subzones-rule
         }
 

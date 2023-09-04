@@ -387,11 +387,6 @@ in {
       in
         {
           input.hook = hookRule "type filter hook input priority 0; policy drop";
-          input.loopback = {
-            after = mkForce ["veryEarly"];
-            before = ["conntrack" "early"];
-            rules = singleton "iifname { lo } accept";
-          };
           input.generated.rules = forEach ruleTypes (
             ruleType: {jump = toTraverseName allZone true localZone true ruleType;}
           );
