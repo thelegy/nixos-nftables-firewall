@@ -27,7 +27,7 @@ machineTest ({config, ...}: {
           iifname { lo } accept
           ct state {established, related} accept
           ct state invalid drop
-          jump traverse-from-all-zone-to-fw-zone-rule
+          tcp dport { 22 } accept  # inlined: rule-ssh
           counter drop
         }
 
@@ -37,17 +37,6 @@ machineTest ({config, ...}: {
 
         chain prerouting {
           type nat hook prerouting priority dstnat;
-        }
-
-        chain rule-icmp {
-          ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
-          ip protocol icmp icmp type { echo-request, router-advertisement } accept
-          ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
-        }
-
-        chain traverse-from-all-zone-to-fw-zone-rule {
-          tcp dport { 22 } accept  # inlined: rule-ssh
-          jump rule-icmp
         }
 
       }

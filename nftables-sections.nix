@@ -17,11 +17,58 @@ in {
     stock-common = {
       enable = mkEnableOption (mdDoc "the stock-common firewall section");
     };
+
+    stock-dhcpv6 = {
+      enable = mkEnableOption (mdDoc "the stock-dhcpv6 firewall section");
+    };
+
+    stock-icmp = {
+      enable = mkEnableOption (mdDoc "the stock-icmp firewall section");
+      ipv6Types = mkOption {
+        type = types.listOf types.str;
+        default = ["echo-request" "nd-router-advert" "nd-neighbor-solicit" "nd-neighbor-advert"];
+        description = mdDoc ''
+          List of allowed ICMPv6 types.
+        '';
+      };
+      ipv4Types = mkOption {
+        type = types.listOf types.str;
+        default = ["echo-request" "router-advertisement"];
+        description = mdDoc ''
+          List of allowed ICMP types.
+        '';
+      };
+    };
   };
 
   config = mkMerge [
     (mkIf cfg.stock-common.enable {
       networking.nftables.firewall.sections = {
+        stock-dhcpv6.enable = true;
+        stock-icmp.enable = true;
+      };
+    })
+
+    (mkIf cfg.stock-dhcpv6.enable {
+      networking.nftables.firewall.rules.dhcpv6 = {
+        after = ["ct" "ssh"];
+        from = "all";
+        to = [localZoneName];
+        extraLines = [
+          "ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept"
+        ];
+      };
+    })
+
+    (mkIf cfg.stock-icmp.enable {
+      networking.nftables.firewall.rules.icmp = {
+        after = ["ct" "ssh"];
+        from = "all";
+        to = [localZoneName];
+        extraLines = [
+          "ip6 nexthdr icmpv6 icmpv6 type { ${concatStringsSep ", " cfg.stock-icmp.ipv6Types} } accept"
+          "ip protocol icmp icmp type { ${concatStringsSep ", " cfg.stock-icmp.ipv4Types} } accept"
+        ];
       };
     })
   ];

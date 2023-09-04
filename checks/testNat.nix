@@ -8,6 +8,7 @@ machineTest ({config, ...}: {
 
   networking.nftables.firewall = {
     enable = true;
+    sections.stock-common.enable = true;
     zones.a.interfaces = ["a"];
     zones.b.interfaces = ["b"];
 
@@ -48,14 +49,18 @@ machineTest ({config, ...}: {
           type nat hook prerouting priority dstnat;
         }
 
+        chain rule-dhcpv6 {
+          ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
+        }
+
         chain rule-icmp {
           ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
           ip protocol icmp icmp type { echo-request, router-advertisement } accept
-          ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
         }
 
         chain traverse-from-all-zone-to-fw-zone-rule {
           tcp dport { 22 } accept  # inlined: rule-ssh
+          jump rule-dhcpv6
           jump rule-icmp
         }
 

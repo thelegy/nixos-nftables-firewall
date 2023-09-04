@@ -9,15 +9,6 @@ machineTest ({config, ...}: {
   networking.nftables.firewall = {
     enable = true;
     sections.stock-common.enable = true;
-    zones.a.interfaces = ["a"];
-    zones.a.ipv4Addresses = ["192.168.1.0/24"];
-    zones.b.ipv4Addresses = ["1.2.3.4"];
-    zones.b.ipv6Addresses = ["1234::"];
-    rules.a-to-b = {
-      from = ["a"];
-      to = ["b"];
-      allowedTCPPorts = [42];
-    };
   };
 
   output = {
@@ -29,7 +20,6 @@ machineTest ({config, ...}: {
           type filter hook forward priority 0; policy drop;
           ct state {established, related} accept
           ct state invalid drop
-          jump traverse-from-all-subzones-to-all-subzones-rule
           counter drop
         }
 
@@ -57,16 +47,6 @@ machineTest ({config, ...}: {
         chain rule-icmp {
           ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
           ip protocol icmp icmp type { echo-request, router-advertisement } accept
-        }
-
-        chain traverse-from-a-subzones-to-all-subzones-rule {
-          ip6 daddr { 1234:: } tcp dport { 42 } accept  # inlined: rule-a-to-b
-          ip daddr { 1.2.3.4 } tcp dport { 42 } accept  # inlined: rule-a-to-b
-        }
-
-        chain traverse-from-all-subzones-to-all-subzones-rule {
-          iifname { a } jump traverse-from-a-subzones-to-all-subzones-rule
-          ip saddr { 192.168.1.0/24 } jump traverse-from-a-subzones-to-all-subzones-rule
         }
 
         chain traverse-from-all-zone-to-fw-zone-rule {
