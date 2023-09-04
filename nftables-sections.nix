@@ -26,6 +26,10 @@ in {
       enable = mkEnableOption (mdDoc "the stock-drop firewall section");
     };
 
+    stock-loopback = {
+      enable = mkEnableOption (mdDoc "the stock-loopback firewall section");
+    };
+
     stock-dhcpv6 = {
       enable = mkEnableOption (mdDoc "the stock-dhcpv6 firewall section");
     };
@@ -54,6 +58,7 @@ in {
       networking.nftables.firewall.sections = {
         stock-conntrack.enable = true;
         stock-drop.enable = true;
+        stock-loopback.enable = true;
         stock-dhcpv6.enable = true;
         stock-icmp.enable = true;
       };
@@ -85,6 +90,16 @@ in {
       in {
         input.drop = dropRule;
         forward.drop = dropRule;
+      };
+    })
+
+    (mkIf cfg.stock-loopback.enable {
+      networking.nftables.chains = {
+        input.loopback = {
+          after = mkForce ["veryEarly"];
+          before = ["conntrack" "early"];
+          rules = singleton "iifname { lo } accept";
+        };
       };
     })
 
