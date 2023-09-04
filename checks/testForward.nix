@@ -11,8 +11,6 @@ machineTest ({config, ...}: {
     zones.a.interfaces = ["a"];
     zones.b.interfaces = ["b"];
 
-    rules.ssh.enable = false;
-
     rules.forward = {
       from = ["a"];
       to = ["b"];

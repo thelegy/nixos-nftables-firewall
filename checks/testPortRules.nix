@@ -68,7 +68,6 @@ machineTest ({config, ...}: {
         }
 
         chain traverse-from-all-zone-to-fw-zone-rule {
-          tcp dport { 22 } accept  # inlined: rule-ssh
           jump rule-multiple
           tcp dport { 555 } accept  # inlined: rule-nose
           udp dport { 60000-62000 } accept  # inlined: rule-range

@@ -51,6 +51,10 @@ in {
         '';
       };
     };
+
+    stock-ssh = {
+      enable = mkEnableOption (mdDoc "the stock-ssh firewall section");
+    };
   };
 
   config = mkMerge [
@@ -61,6 +65,7 @@ in {
         stock-loopback.enable = true;
         stock-dhcpv6.enable = true;
         stock-icmp.enable = true;
+        stock-ssh.enable = true;
       };
     })
 
@@ -123,6 +128,16 @@ in {
           "ip6 nexthdr icmpv6 icmpv6 type { ${concatStringsSep ", " cfg.stock-icmp.ipv6Types} } accept"
           "ip protocol icmp icmp type { ${concatStringsSep ", " cfg.stock-icmp.ipv4Types} } accept"
         ];
+      };
+    })
+
+    (mkIf cfg.stock-ssh.enable {
+      networking.nftables.firewall.rules.ssh = {
+        early = true;
+        after = ["ct"];
+        from = "all";
+        to = [localZoneName];
+        allowedTCPPorts = config.services.openssh.ports;
       };
     })
   ];

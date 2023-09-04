@@ -320,13 +320,6 @@ in {
           allowedTCPPorts = config.networking.firewall.allowedTCPPorts;
           allowedUDPPorts = config.networking.firewall.allowedUDPPorts;
         };
-        ssh = {
-          early = true;
-          after = ["ct"];
-          from = "all";
-          to = [cfg.localZoneName];
-          allowedTCPPorts = config.services.openssh.ports;
-        };
       };
 
       networking.nftables.chains = let

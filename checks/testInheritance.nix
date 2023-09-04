@@ -46,7 +46,7 @@ machineTest ({config, ...}: {
 
         chain input {
           type filter hook input priority 0; policy drop
-          jump traverse-from-all-subzones-to-fw-subzones-rule
+          iifname { a } iifname { b } oifname { c } tcp dport { 2000 } accept  # inlined: rule-b-to-c
         }
 
         chain postrouting {
@@ -55,11 +55,6 @@ machineTest ({config, ...}: {
 
         chain prerouting {
           type nat hook prerouting priority dstnat;
-        }
-
-        chain traverse-from-all-subzones-to-fw-subzones-rule {
-          iifname { a } iifname { b } oifname { c } tcp dport { 2000 } accept  # inlined: rule-b-to-c
-          tcp dport { 22 } accept  # inlined: rule-ssh
         }
 
       }
