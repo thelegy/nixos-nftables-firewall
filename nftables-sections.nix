@@ -18,6 +18,10 @@ in {
       enable = mkEnableOption (mdDoc "the stock-common firewall section");
     };
 
+    stock-drop = {
+      enable = mkEnableOption (mdDoc "the stock-drop firewall section");
+    };
+
     stock-dhcpv6 = {
       enable = mkEnableOption (mdDoc "the stock-dhcpv6 firewall section");
     };
@@ -44,8 +48,22 @@ in {
   config = mkMerge [
     (mkIf cfg.stock-common.enable {
       networking.nftables.firewall.sections = {
+        stock-drop.enable = true;
         stock-dhcpv6.enable = true;
         stock-icmp.enable = true;
+      };
+    })
+
+    (mkIf cfg.stock-drop.enable {
+      networking.nftables.chains = let
+        dropRule = {
+          after = mkForce ["veryLate"];
+          before = mkForce ["end"];
+          rules = singleton "counter drop";
+        };
+      in {
+        input.drop = dropRule;
+        forward.drop = dropRule;
       };
     })
 

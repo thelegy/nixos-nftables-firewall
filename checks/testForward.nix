@@ -48,7 +48,6 @@ machineTest ({config, ...}: {
           ct state {established, related} accept
           ct state invalid drop
           jump traverse-from-all-subzones-to-all-subzones-rule
-          counter drop
         }
 
         chain input {
@@ -57,7 +56,6 @@ machineTest ({config, ...}: {
           ct state {established, related} accept
           ct state invalid drop
           jump traverse-from-all-subzones-to-fw-subzones-rule
-          counter drop
         }
 
         chain postrouting {

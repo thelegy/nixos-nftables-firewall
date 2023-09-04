@@ -34,7 +34,6 @@ machineTest ({config, ...}: {
           ct state invalid drop
           accept  # inlined: rule-rule
           accept  # inlined: rule-policy
-          counter drop
         }
 
         chain input {
@@ -44,7 +43,6 @@ machineTest ({config, ...}: {
           ct state invalid drop
           jump traverse-from-all-subzones-to-fw-subzones-rule
           accept  # inlined: rule-policy
-          counter drop
         }
 
         chain postrouting {

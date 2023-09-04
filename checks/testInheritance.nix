@@ -44,7 +44,6 @@ machineTest ({config, ...}: {
           ct state {established, related} accept
           ct state invalid drop
           iifname { a } iifname { b } oifname { a } oifname { b } tcp dport { 1000 } accept  # inlined: rule-b-to-b
-          counter drop
         }
 
         chain input {
@@ -53,7 +52,6 @@ machineTest ({config, ...}: {
           ct state {established, related} accept
           ct state invalid drop
           jump traverse-from-all-subzones-to-fw-subzones-rule
-          counter drop
         }
 
         chain postrouting {
