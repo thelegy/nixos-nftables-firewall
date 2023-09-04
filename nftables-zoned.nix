@@ -313,15 +313,6 @@ in {
         localZone = true;
       };
 
-      networking.nftables.firewall.rules = {
-        nixos-firewall = {
-          from = mkDefault "all";
-          to = [cfg.localZoneName];
-          allowedTCPPorts = config.networking.firewall.allowedTCPPorts;
-          allowedUDPPorts = config.networking.firewall.allowedUDPPorts;
-        };
-      };
-
       networking.nftables.chains = let
         hookRule = hook: {
           after = mkForce ["start"];
