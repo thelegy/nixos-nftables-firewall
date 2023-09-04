@@ -335,11 +335,6 @@ in {
           before = mkForce ["veryEarly"];
           rules = singleton hook;
         };
-        dropRule = {
-          after = mkForce ["veryLate"];
-          before = mkForce ["end"];
-          rules = singleton "counter drop";
-        };
         conntrackRule = {
           after = mkForce ["veryEarly"];
           before = ["early"];
@@ -409,7 +404,6 @@ in {
           input.generated.rules = forEach ruleTypes (
             ruleType: {jump = toTraverseName allZone true localZone true ruleType;}
           );
-          input.drop = dropRule;
 
           prerouting.hook = hookRule "type nat hook prerouting priority dstnat;";
 
@@ -432,7 +426,6 @@ in {
           forward.generated.rules = concatLists (forEach ruleTypes (ruleType: [
             {jump = toTraverseName allZone true allZone true ruleType;}
           ]));
-          forward.drop = dropRule;
         }
         // (listToAttrs (flatten [
           (perZone (_: true) (zone: [
