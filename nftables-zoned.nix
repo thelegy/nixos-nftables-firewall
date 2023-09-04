@@ -335,14 +335,6 @@ in {
           before = mkForce ["veryEarly"];
           rules = singleton hook;
         };
-        conntrackRule = {
-          after = mkForce ["veryEarly"];
-          before = ["early"];
-          rules = [
-            "ct state {established, related} accept"
-            "ct state invalid drop"
-          ];
-        };
         traversalChains = fromZone: toZone: (forEach ruleTypes (
           ruleType: (forEach [true false] (
             matchFromSubzones: (forEach [true false] (
@@ -400,7 +392,6 @@ in {
             before = ["conntrack" "early"];
             rules = singleton "iifname { lo } accept";
           };
-          input.conntrack = conntrackRule;
           input.generated.rules = forEach ruleTypes (
             ruleType: {jump = toTraverseName allZone true localZone true ruleType;}
           );
@@ -422,7 +413,6 @@ in {
           ];
 
           forward.hook = hookRule "type filter hook forward priority 0; policy drop;";
-          forward.conntrack = conntrackRule;
           forward.generated.rules = concatLists (forEach ruleTypes (ruleType: [
             {jump = toTraverseName allZone true allZone true ruleType;}
           ]));

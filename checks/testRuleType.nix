@@ -30,8 +30,6 @@ machineTest ({config, ...}: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          ct state {established, related} accept
-          ct state invalid drop
           accept  # inlined: rule-rule
           accept  # inlined: rule-policy
         }
@@ -39,8 +37,6 @@ machineTest ({config, ...}: {
         chain input {
           type filter hook input priority 0; policy drop
           iifname { lo } accept
-          ct state {established, related} accept
-          ct state invalid drop
           jump traverse-from-all-subzones-to-fw-subzones-rule
           accept  # inlined: rule-policy
         }

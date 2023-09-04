@@ -47,15 +47,11 @@ machineTest ({config, ...}: {
 
         chain forward {
           type filter hook forward priority 0; policy drop;
-          ct state {established, related} accept
-          ct state invalid drop
         }
 
         chain input {
           type filter hook input priority 0; policy drop
           iifname { lo } accept
-          ct state {established, related} accept
-          ct state invalid drop
           jump traverse-from-all-zone-to-fw-zone-rule
         }
 
