@@ -145,6 +145,7 @@ with lib; let
         "nftables"
         "nftables-chains"
         "nftables-zoned"
+        "nftables-sections"
       ])
     ];
   };
