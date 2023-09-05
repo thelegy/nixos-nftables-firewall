@@ -53,7 +53,7 @@ with lib; let
     then code.text
     else "```\n${generators.toPretty {} code}\n```";
 
-  renderOptionsDoc = options: let
+  renderOptionsDocs = options: let
     optionsDoc = import "${path}/nixos/lib/make-options-doc" {
       inherit pkgs lib options;
       warningsAreErrors = false;
@@ -76,11 +76,9 @@ with lib; let
 
       ${optionalString (! isNull option.example or null) "*Example*\n${renderCode option.example}"}
     '';
-  in
-    concatStrings (mapAttrsToList renderOptionDoc optionsDocParsed);
-  #in readFile optionsDoc.optionsCommonMark;
+  in (mapAttrs renderOptionDoc optionsDocParsed);
 
-  renderModuleDocs = modulesPath: modules: let
+  renderDocs = modulesPath: let
     nixosModule = args @ {
       options,
       pkgs,
@@ -91,27 +89,41 @@ with lib; let
         description = mdDoc "";
       };
       config.output = let
-        prefixMd = module: content: ''
-          # Module ${module}
-          ${let
-            moduleDocs = ./module-${module}.md;
-          in
-            optionalString (pathExists moduleDocs) (fileContents moduleDocs)}
-          ## Options
-          ${content}
-        '';
-        renderModuleDoc = module:
-          pipe (import "${modulesPath}/${module}.nix" flakes args).options [
-            collectOptionPaths
-            (flip filterAttrsRecursiveByPaths options)
-            renderOptionsDoc
-            (prefixMd module)
-            (writeTextDir "modules/${module}.md")
+        optionDocs = pipe modulesPath [
+          builtins.readDir
+          (filterAttrs (k: v: hasSuffix ".nix" k && v == "regular"))
+          attrNames
+          (filter (x: x != "flake.nix"))
+          (map (x: (import "${modulesPath}/${x}" flakes args).options))
+          (map collectOptionPaths)
+          (map (flip filterAttrsRecursiveByPaths options))
+          (map renderOptionsDocs)
+          (fold recursiveUpdate {})
+        ];
+        substituteOption = line: let
+          pathStr = mapNullable head (strings.match "%(.*)%" line);
+          options = filterAttrs (k: _: pathStr == k || hasPrefix "${pathStr}." k) optionDocs;
+          optionsStr = concatStringsSep "\n\n" (attrValues options);
+        in
+          if isNull pathStr
+          then line
+          else optionsStr;
+        sustituteOptions = md:
+          pipe md [
+            (strings.splitString "\n")
+            (map substituteOption)
+            (concatStringsSep "\n")
           ];
       in
         symlinkJoin {
           name = "module docs md";
-          paths = map renderModuleDoc modules;
+          paths = pipe ./. [
+            builtins.readDir
+            (filterAttrs (k: v: hasSuffix ".md" k && v == "regular"))
+            (mapAttrs (k: _: fileContents "${./.}/${k}"))
+            (mapAttrs (_: sustituteOptions))
+            (mapAttrsToList (k: writeTextDir "docs/${k}"))
+          ];
         };
     };
     machine = flakes.nixpkgs.lib.nixosSystem {
@@ -133,7 +145,7 @@ with lib; let
        :maxdepth: 3
        :glob:
 
-       modules/*
+       docs/*
   '';
 
   docsSrc = symlinkJoin {
@@ -141,12 +153,7 @@ with lib; let
     paths = [
       sphinxConfig
       indexRst
-      (renderModuleDocs ../. [
-        "nftables"
-        "nftables-chains"
-        "nftables-zoned"
-        "nftables-sections"
-      ])
+      (renderDocs ../.)
     ];
   };
 
