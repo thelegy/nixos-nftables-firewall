@@ -63,6 +63,7 @@ in {
 
   config = mkMerge [
     (mkIf cfg.stock-common.enable {
+      networking.nftables.firewall.enable = true;
       networking.nftables.firewall.sections = {
         stock-conntrack.enable = true;
         stock-drop.enable = true;
