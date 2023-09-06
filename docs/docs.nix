@@ -78,7 +78,7 @@ with lib; let
     '';
   in (mapAttrs renderOptionDoc optionsDocParsed);
 
-  renderDocs = modulesPath: let
+  renderedDocs = let
     nixosModule = args @ {
       options,
       pkgs,
@@ -89,16 +89,11 @@ with lib; let
         description = mdDoc "";
       };
       config.output = let
-        optionDocs = pipe modulesPath [
-          builtins.readDir
-          (filterAttrs (k: v: hasSuffix ".nix" k && v == "regular"))
-          attrNames
-          (filter (x: x != "flake.nix"))
-          (map (x: (import "${modulesPath}/${x}" flakes args).options))
-          (map collectOptionPaths)
-          (map (flip filterAttrsRecursiveByPaths options))
-          (map renderOptionsDocs)
-          (fold recursiveUpdate {})
+        optionDocs = pipe options [
+          collectOptionPaths
+          (filter (lists.hasPrefix ["networking" "nftables"]))
+          (flip filterAttrsRecursiveByPaths options)
+          renderOptionsDocs
         ];
         substituteOption = line: let
           pathStr = mapNullable head (strings.match "%(.*)%" line);
@@ -153,7 +148,7 @@ with lib; let
     paths = [
       sphinxConfig
       indexRst
-      (renderDocs ../.)
+      renderedDocs
     ];
   };
 
