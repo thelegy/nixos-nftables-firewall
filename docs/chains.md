@@ -1,4 +1,4 @@
-# Module nftables-chains
+# Chains
 
 ## Options
 
