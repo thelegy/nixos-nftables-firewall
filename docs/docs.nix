@@ -135,7 +135,7 @@ with lib; let
   indexRst = writeTextDir "index.rst" ''
     .. include:: ../../../${../README.md}
        :parser: markdown
-    .. rubric:: Modules
+    .. rubric:: Table of contents
     .. toctree::
        :maxdepth: 3
        :glob:
