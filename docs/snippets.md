@@ -2,28 +2,28 @@
 
 Snippets are meant as method of definig very high-level options, that may be very opinionated and thus not suited for everybody.
 
-Snippets can be enabled individually. They can be definied by third parties, so to circumvent name collisions all snippets defined by this repository are prefixed with `stock-`. Please do not use this prefix for any snippets defined by other repositories, though it might be advised you pick your own prefix.
+Snippets can be enabled individually. They can be definied by third parties, so to circumvent name collisions all snippets defined by this repository are prefixed with `nnf-`. Please do not use this prefix for any snippets defined by other repositories, though it might be advised you pick your own prefix.
 
-## stock-common
-%networking.nftables.firewall.snippets.stock-common%
+## nnf-common
+%networking.nftables.firewall.snippets.nnf-common%
 
-## stock-conntrack
-%networking.nftables.firewall.snippets.stock-conntrack%
+## nnf-conntrack
+%networking.nftables.firewall.snippets.nnf-conntrack%
 
-## stock-dhcpv6
-%networking.nftables.firewall.snippets.stock-dhcpv6%
+## nnf-dhcpv6
+%networking.nftables.firewall.snippets.nnf-dhcpv6%
 
-## stock-drop
-%networking.nftables.firewall.snippets.stock-drop%
+## nnf-drop
+%networking.nftables.firewall.snippets.nnf-drop%
 
-## stock-icmp
-%networking.nftables.firewall.snippets.stock-icmp%
+## nnf-icmp
+%networking.nftables.firewall.snippets.nnf-icmp%
 
-## stock-loopback
-%networking.nftables.firewall.snippets.stock-loopback%
+## nnf-loopback
+%networking.nftables.firewall.snippets.nnf-loopback%
 
-## stock-nixos-firewall
-%networking.nftables.firewall.snippets.stock-nixos-firewall%
+## nnf-nixos-firewall
+%networking.nftables.firewall.snippets.nnf-nixos-firewall%
 
-## stock-ssh
-%networking.nftables.firewall.snippets.stock-ssh%
+## nnf-ssh
+%networking.nftables.firewall.snippets.nnf-ssh%

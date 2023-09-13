@@ -7,7 +7,7 @@ machineTest ({config, ...}: {
   imports = [flakes.self.nixosModules.default];
 
   networking.nftables.firewall = {
-    snippets.stock-common.enable = true;
+    snippets.nnf-common.enable = true;
   };
 
   output = {
