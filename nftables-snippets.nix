@@ -14,28 +14,28 @@ in {
   ];
 
   options.networking.nftables.firewall.snippets = {
-    stock-common = {
-      enable = mkEnableOption (mdDoc "the stock-common firewall snippet");
+    nnf-common = {
+      enable = mkEnableOption (mdDoc "the nnf-common firewall snippet");
     };
 
-    stock-conntrack = {
-      enable = mkEnableOption (mdDoc "the stock-conntrack firewall snippet");
+    nnf-conntrack = {
+      enable = mkEnableOption (mdDoc "the nnf-conntrack firewall snippet");
     };
 
-    stock-drop = {
-      enable = mkEnableOption (mdDoc "the stock-drop firewall snippet");
+    nnf-drop = {
+      enable = mkEnableOption (mdDoc "the nnf-drop firewall snippet");
     };
 
-    stock-loopback = {
-      enable = mkEnableOption (mdDoc "the stock-loopback firewall snippet");
+    nnf-loopback = {
+      enable = mkEnableOption (mdDoc "the nnf-loopback firewall snippet");
     };
 
-    stock-dhcpv6 = {
-      enable = mkEnableOption (mdDoc "the stock-dhcpv6 firewall snippet");
+    nnf-dhcpv6 = {
+      enable = mkEnableOption (mdDoc "the nnf-dhcpv6 firewall snippet");
     };
 
-    stock-icmp = {
-      enable = mkEnableOption (mdDoc "the stock-icmp firewall snippet");
+    nnf-icmp = {
+      enable = mkEnableOption (mdDoc "the nnf-icmp firewall snippet");
       ipv6Types = mkOption {
         type = types.listOf types.str;
         default = ["echo-request" "nd-router-advert" "nd-neighbor-solicit" "nd-neighbor-advert"];
@@ -52,30 +52,30 @@ in {
       };
     };
 
-    stock-ssh = {
-      enable = mkEnableOption (mdDoc "the stock-ssh firewall snippet");
+    nnf-ssh = {
+      enable = mkEnableOption (mdDoc "the nnf-ssh firewall snippet");
     };
 
-    stock-nixos-firewall = {
-      enable = mkEnableOption (mdDoc "the stock-nixos-firewall firewall snippet");
+    nnf-nixos-firewall = {
+      enable = mkEnableOption (mdDoc "the nnf-nixos-firewall firewall snippet");
     };
   };
 
   config = mkMerge [
-    (mkIf cfg.stock-common.enable {
+    (mkIf cfg.nnf-common.enable {
       networking.nftables.firewall.enable = true;
       networking.nftables.firewall.snippets = mkDefault {
-        stock-conntrack.enable = true;
-        stock-drop.enable = true;
-        stock-loopback.enable = true;
-        stock-dhcpv6.enable = true;
-        stock-icmp.enable = true;
-        stock-ssh.enable = true;
-        stock-nixos-firewall.enable = true;
+        nnf-conntrack.enable = true;
+        nnf-drop.enable = true;
+        nnf-loopback.enable = true;
+        nnf-dhcpv6.enable = true;
+        nnf-icmp.enable = true;
+        nnf-ssh.enable = true;
+        nnf-nixos-firewall.enable = true;
       };
     })
 
-    (mkIf cfg.stock-conntrack.enable {
+    (mkIf cfg.nnf-conntrack.enable {
       networking.nftables.chains = let
         conntrackRule = {
           after = mkForce ["veryEarly"];
@@ -91,7 +91,7 @@ in {
       };
     })
 
-    (mkIf cfg.stock-drop.enable {
+    (mkIf cfg.nnf-drop.enable {
       networking.nftables.chains = let
         dropRule = {
           after = mkForce ["veryLate"];
@@ -104,7 +104,7 @@ in {
       };
     })
 
-    (mkIf cfg.stock-loopback.enable {
+    (mkIf cfg.nnf-loopback.enable {
       networking.nftables.chains = {
         input.loopback = {
           after = mkForce ["veryEarly"];
@@ -114,7 +114,7 @@ in {
       };
     })
 
-    (mkIf cfg.stock-dhcpv6.enable {
+    (mkIf cfg.nnf-dhcpv6.enable {
       networking.nftables.firewall.rules.dhcpv6 = {
         after = ["ct" "ssh"];
         from = "all";
@@ -125,19 +125,19 @@ in {
       };
     })
 
-    (mkIf cfg.stock-icmp.enable {
+    (mkIf cfg.nnf-icmp.enable {
       networking.nftables.firewall.rules.icmp = {
         after = ["ct" "ssh"];
         from = "all";
         to = [localZoneName];
         extraLines = [
-          "ip6 nexthdr icmpv6 icmpv6 type { ${concatStringsSep ", " cfg.stock-icmp.ipv6Types} } accept"
-          "ip protocol icmp icmp type { ${concatStringsSep ", " cfg.stock-icmp.ipv4Types} } accept"
+          "ip6 nexthdr icmpv6 icmpv6 type { ${concatStringsSep ", " cfg.nnf-icmp.ipv6Types} } accept"
+          "ip protocol icmp icmp type { ${concatStringsSep ", " cfg.nnf-icmp.ipv4Types} } accept"
         ];
       };
     })
 
-    (mkIf cfg.stock-ssh.enable {
+    (mkIf cfg.nnf-ssh.enable {
       networking.nftables.firewall.rules.ssh = {
         early = true;
         after = ["ct"];
@@ -147,7 +147,7 @@ in {
       };
     })
 
-    (mkIf cfg.stock-nixos-firewall.enable {
+    (mkIf cfg.nnf-nixos-firewall.enable {
       networking.nftables.firewall.rules.nixos-firewall = {
         from = mkDefault "all";
         to = [localZoneName];
