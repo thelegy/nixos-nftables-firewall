@@ -4,7 +4,7 @@ flakes: {
   ...
 }:
 with lib; let
-  cfg = config.networking.nftables.firewall.sections;
+  cfg = config.networking.nftables.firewall.snippets;
   localZoneName = config.networking.nftables.firewall.localZoneName;
 
   ruleTypes = ["rule" "policy"];
@@ -13,29 +13,29 @@ in {
     (import ./nftables-zoned.nix flakes)
   ];
 
-  options.networking.nftables.firewall.sections = {
+  options.networking.nftables.firewall.snippets = {
     stock-common = {
-      enable = mkEnableOption (mdDoc "the stock-common firewall section");
+      enable = mkEnableOption (mdDoc "the stock-common firewall snippet");
     };
 
     stock-conntrack = {
-      enable = mkEnableOption (mdDoc "the stock-conntrack firewall section");
+      enable = mkEnableOption (mdDoc "the stock-conntrack firewall snippet");
     };
 
     stock-drop = {
-      enable = mkEnableOption (mdDoc "the stock-drop firewall section");
+      enable = mkEnableOption (mdDoc "the stock-drop firewall snippet");
     };
 
     stock-loopback = {
-      enable = mkEnableOption (mdDoc "the stock-loopback firewall section");
+      enable = mkEnableOption (mdDoc "the stock-loopback firewall snippet");
     };
 
     stock-dhcpv6 = {
-      enable = mkEnableOption (mdDoc "the stock-dhcpv6 firewall section");
+      enable = mkEnableOption (mdDoc "the stock-dhcpv6 firewall snippet");
     };
 
     stock-icmp = {
-      enable = mkEnableOption (mdDoc "the stock-icmp firewall section");
+      enable = mkEnableOption (mdDoc "the stock-icmp firewall snippet");
       ipv6Types = mkOption {
         type = types.listOf types.str;
         default = ["echo-request" "nd-router-advert" "nd-neighbor-solicit" "nd-neighbor-advert"];
@@ -53,18 +53,18 @@ in {
     };
 
     stock-ssh = {
-      enable = mkEnableOption (mdDoc "the stock-ssh firewall section");
+      enable = mkEnableOption (mdDoc "the stock-ssh firewall snippet");
     };
 
     stock-nixos-firewall = {
-      enable = mkEnableOption (mdDoc "the stock-nixos-firewall firewall section");
+      enable = mkEnableOption (mdDoc "the stock-nixos-firewall firewall snippet");
     };
   };
 
   config = mkMerge [
     (mkIf cfg.stock-common.enable {
       networking.nftables.firewall.enable = true;
-      networking.nftables.firewall.sections = mkDefault {
+      networking.nftables.firewall.snippets = mkDefault {
         stock-conntrack.enable = true;
         stock-drop.enable = true;
         stock-loopback.enable = true;
