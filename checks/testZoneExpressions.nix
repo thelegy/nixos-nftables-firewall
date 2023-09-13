@@ -7,7 +7,7 @@ machineTest ({config, ...}: {
   imports = [flakes.self.nixosModules.default];
 
   networking.nftables.firewall = {
-    sections.stock-common.enable = true;
+    snippets.stock-common.enable = true;
     zones.a.interfaces = ["a"];
     zones.a.ipv4Addresses = ["192.168.1.0/24"];
     zones.b.ipv4Addresses = ["1.2.3.4"];
