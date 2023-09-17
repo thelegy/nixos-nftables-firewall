@@ -1,10 +1,10 @@
-{ machineTest
-, flakes
-, ... }:
-
-machineTest ({ config, ... }: {
-
-  imports = [ flakes.self.nixosModules.default ];
+{
+  machineTest,
+  flakes,
+  ...
+}:
+machineTest ({config, ...}: {
+  imports = [flakes.self.nixosModules.default];
 
   networking.nftables.firewall = {
     enable = true;
@@ -74,5 +74,4 @@ machineTest ({ config, ... }: {
       }
     '';
   };
-
 })

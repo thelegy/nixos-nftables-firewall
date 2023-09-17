@@ -1,30 +1,24 @@
-system:
-flakes@{ nixpkgs, ... }:
+system: flakes @ {nixpkgs, ...}: let
+  lib = nixpkgs.lib.extend (import ./utils.nix system nixpkgs) // {inherit flakes;};
+in
+  with lib; {
+    tests = run-tests {
+      testChains = import ./testChains.nix lib;
 
-let
+      testEmpty = import ./testEmpty.nix lib;
 
-  lib = nixpkgs.lib.extend (import ./utils.nix system nixpkgs) // { inherit flakes; };
+      testZoneExpressions = import ./testZoneExpressions.nix lib;
 
-in with lib; {
-  tests = run-tests {
+      testWebserver = import ./testWebserver.nix lib;
 
-    testChains = import ./testChains.nix lib;
+      testForward = import ./testForward.nix lib;
 
-    testEmpty = import ./testEmpty.nix lib;
+      testNat = import ./testNat.nix lib;
 
-    testZoneExpressions = import ./testZoneExpressions.nix lib;
+      testPortRules = import ./testPortRules.nix lib;
 
-    testWebserver = import ./testWebserver.nix lib;
+      testInheritance = import ./testInheritance.nix lib;
 
-    testForward = import ./testForward.nix lib;
-
-    testNat = import ./testNat.nix lib;
-
-    testPortRules = import ./testPortRules.nix lib;
-
-    testInheritance = import ./testInheritance.nix lib;
-
-    testRuleType = import ./testRuleType.nix lib;
-
-  };
-}
+      testRuleType = import ./testRuleType.nix lib;
+    };
+  }

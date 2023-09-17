@@ -1,46 +1,56 @@
-{ runCommand
-, flakes
-, formats
-, lib
-, path
-, pkgs
-, python3
-, symlinkJoin
-, system
-, writeText
-, writeTextDir
-}: with lib;
-
-let
-
-  collectOptionPaths = y: concatLists (
-    mapAttrsToList (k: v:
-      if v ? _type
-      then [[k]]
-      else map (x: [k] ++ x) (collectOptionPaths v)
-      ) y);
+{
+  runCommand,
+  flakes,
+  formats,
+  lib,
+  path,
+  pkgs,
+  python3,
+  symlinkJoin,
+  system,
+  writeText,
+  writeTextDir,
+}:
+with lib; let
+  collectOptionPaths = y:
+    concatLists (
+      mapAttrsToList (
+        k: v:
+          if v ? _type
+          then [[k]]
+          else map (x: [k] ++ x) (collectOptionPaths v)
+      )
+      y
+    );
 
   filterAttrsRecursiveByPaths = paths: attrs: let
     heads = map (x: head x) paths;
-    newPaths = h: pipe paths [
-      (filter (x: h == head x))
-      (map tail)
-      (x: if any (y: length y == 0) x then [] else x)
-    ];
+    newPaths = h:
+      pipe paths [
+        (filter (x: h == head x))
+        (map tail)
+        (x:
+          if any (y: length y == 0) x
+          then []
+          else x)
+      ];
     mapFn = k: v: let
       p = newPaths k;
     in
       if length p > 0
       then filterAttrsRecursiveByPaths p v
       else v;
-  in pipe attrs [
-    (filterAttrs (k: _: elem k heads))
-    (mapAttrs mapFn)
-  ];
+  in
+    pipe attrs [
+      (filterAttrs (k: _: elem k heads))
+      (mapAttrs mapFn)
+    ];
 
   renderCode = code:
-    if isType "literalExpression" code then "```\n${code.text}\n```"
-    else if isType "literalMD" code then code.text
+    if isType "literalExpression" code
+    then "```\n${code.text}\n```"
+    else if isType "literalMD" code
+    then code.text
     else "```\n${generators.toPretty {} code}\n```";
 
   renderOptionsDoc = options: let
@@ -56,7 +66,7 @@ let
     ];
     renderOptionDoc = name: option: ''
       ### ${escapeXML name}
-      ${replaceStrings [ "<literal>" "</literal>"] [ "`" "`" ] option.description}
+      ${replaceStrings ["<literal>" "</literal>"] ["`" "`"] option.description}
 
       ${optionalString (! isNull option.type or null) "*_Type_*\n```\n${option.type}\n```"}
 
@@ -66,38 +76,50 @@ let
 
       ${optionalString (! isNull option.example or null) "*Example*\n${renderCode option.example}"}
     '';
-  in concatStrings (mapAttrsToList renderOptionDoc optionsDocParsed);
+  in
+    concatStrings (mapAttrsToList renderOptionDoc optionsDocParsed);
   #in readFile optionsDoc.optionsCommonMark;
 
   renderModuleDocs = modulesPath: modules: let
-    nixosModule = args@{ options, pkgs, ... }: {
-      options.output = mkOption { type = types.anything; description = mdDoc ""; };
+    nixosModule = args @ {
+      options,
+      pkgs,
+      ...
+    }: {
+      options.output = mkOption {
+        type = types.anything;
+        description = mdDoc "";
+      };
       config.output = let
         prefixMd = module: content: ''
           # Module ${module}
           ${let
             moduleDocs = ./module-${module}.md;
-          in optionalString (pathExists moduleDocs) (fileContents moduleDocs)}
+          in
+            optionalString (pathExists moduleDocs) (fileContents moduleDocs)}
           ## Options
           ${content}
         '';
-        renderModuleDoc = module: pipe (import "${modulesPath}/${module}.nix" flakes args).options [
-          collectOptionPaths
-          (flip filterAttrsRecursiveByPaths options)
-          renderOptionsDoc
-          (prefixMd module)
-          (writeTextDir "modules/${module}.md")
-        ];
-      in symlinkJoin {
-        name = "module docs md";
-        paths = map renderModuleDoc modules;
-      };
+        renderModuleDoc = module:
+          pipe (import "${modulesPath}/${module}.nix" flakes args).options [
+            collectOptionPaths
+            (flip filterAttrsRecursiveByPaths options)
+            renderOptionsDoc
+            (prefixMd module)
+            (writeTextDir "modules/${module}.md")
+          ];
+      in
+        symlinkJoin {
+          name = "module docs md";
+          paths = map renderModuleDoc modules;
+        };
     };
     machine = flakes.nixpkgs.lib.nixosSystem {
       inherit system;
-      modules = [ flakes.self.nixosModules.default nixosModule ];
+      modules = [flakes.self.nixosModules.default nixosModule];
     };
-  in machine.config.output;
+  in
+    machine.config.output;
 
   owner = "thelegy";
   repo = "nixos-nftables-firewall";
@@ -145,8 +167,8 @@ let
     }
   '';
 
-  sphinx = python3.withPackages (p: [ p.sphinx p.myst-parser ]);
-
-in runCommand "${repo}-docs" {} ''
-  ${sphinx}/bin/sphinx-build -b dirhtml ${docsSrc} $out
-''
+  sphinx = python3.withPackages (p: [p.sphinx p.myst-parser]);
+in
+  runCommand "${repo}-docs" {} ''
+    ${sphinx}/bin/sphinx-build -b dirhtml ${docsSrc} $out
+  ''

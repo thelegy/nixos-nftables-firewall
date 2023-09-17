@@ -1,21 +1,21 @@
-{ machineTest
-, flakes
-, ... }:
-
-machineTest ({ config, ... }: {
-
-  imports = [ flakes.self.nixosModules.default ];
+{
+  machineTest,
+  flakes,
+  ...
+}:
+machineTest ({config, ...}: {
+  imports = [flakes.self.nixosModules.default];
 
   networking.nftables.firewall = {
     enable = true;
-    zones.a.interfaces = [ "a" ];
-    zones.a.ipv4Addresses = [ "192.168.1.0/24" ];
-    zones.b.ipv4Addresses = [ "1.2.3.4" ];
-    zones.b.ipv6Addresses = [ "1234::" ];
+    zones.a.interfaces = ["a"];
+    zones.a.ipv4Addresses = ["192.168.1.0/24"];
+    zones.b.ipv4Addresses = ["1.2.3.4"];
+    zones.b.ipv6Addresses = ["1234::"];
     rules.a-to-b = {
-      from = [ "a" ];
-      to = [ "b" ];
-      allowedTCPPorts = [ 42 ];
+      from = ["a"];
+      to = ["b"];
+      allowedTCPPorts = [42];
     };
   };
 
@@ -73,5 +73,4 @@ machineTest ({ config, ... }: {
       }
     '';
   };
-
 })

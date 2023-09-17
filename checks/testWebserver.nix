@@ -1,17 +1,17 @@
-{ machineTest
-, flakes
-, ... }:
-
-machineTest ({ config, ... }: {
-
-  imports = [ flakes.self.nixosModules.default ];
+{
+  machineTest,
+  flakes,
+  ...
+}:
+machineTest ({config, ...}: {
+  imports = [flakes.self.nixosModules.default];
 
   networking.nftables.firewall = {
     enable = true;
     rules.webserver = {
       from = "all";
-      to = [ "fw" ];
-      allowedTCPPorts = [ 80 443 ];
+      to = ["fw"];
+      allowedTCPPorts = [80 443];
     };
   };
 
@@ -59,5 +59,4 @@ machineTest ({ config, ... }: {
       }
     '';
   };
-
 })

@@ -1,10 +1,12 @@
-{...}:
-{ config, pkgs, lib, ... }:
-with lib;
-let
+{...}: {
+  config,
+  pkgs,
+  lib,
+  ...
+}:
+with lib; let
   cfg = config.networking.nftables;
-in
-{
+in {
   ###### interface
 
   options = {
@@ -52,7 +54,8 @@ in
           }
         }
       '';
-      description = mdDoc
+      description =
+        mdDoc
         ''
           The ruleset to be used with nftables.  Should be in a format that
           can be loaded using "/bin/nft -f".  The ruleset is only applied,
@@ -71,7 +74,8 @@ in
           text = config.networking.nftables.stopRuleset;
         };
       '';
-      description = mdDoc
+      description =
+        mdDoc
         ''
           The ruleset file to be used with nftables.  Should be in a format that
           can be loaded using "nft -f".  The ruleset is only applied,
@@ -89,26 +93,28 @@ in
           if isNull cfg.rulesetFile or null
           then pkgs.writeText "ruleset-nftables" cfg.ruleset
           else cfg.rulesetFile;
-        rulesScript = rulesetFile: name: pkgs.writeScript "nftables-${name}rules" ''
-          #! ${pkgs.nftables}/bin/nft -f
-          flush ruleset
-          include "${rulesetFile}"
-        '';
+        rulesScript = rulesetFile: name:
+          pkgs.writeScript "nftables-${name}rules" ''
+            #! ${pkgs.nftables}/bin/nft -f
+            flush ruleset
+            include "${rulesetFile}"
+          '';
         # This sadly does not work, b/c nft has an open world assumption wich makes --check
         # require elevated privileges
         #verifiedScript = rulesetFile: name: pkgs.runCommand "nftables-${name}verified" {
         #  src = rulesScript rulesetFile name;
         #  preferLocalBuild = true;
         #} "${pkgs.nftables}/bin/nft -f $src -c && cp $src $out";
-        checkScript = rulesetFile: name: pkgs.writeScript "nftables-${name}check" ''
-          #! ${pkgs.runtimeShell} -e
-          if $(${pkgs.kmod}/bin/lsmod | grep -q ip_tables); then
-            echo "Unload ip_tables before using nftables!" 1>&2
-            exit 1
-          else
-            ${rulesScript rulesetFile name}
-          fi
-        '';
+        checkScript = rulesetFile: name:
+          pkgs.writeScript "nftables-${name}check" ''
+            #! ${pkgs.runtimeShell} -e
+            if $(${pkgs.kmod}/bin/lsmod | grep -q ip_tables); then
+              echo "Unload ip_tables before using nftables!" 1>&2
+              exit 1
+            else
+              ${rulesScript rulesetFile name}
+            fi
+          '';
         startScript = checkScript rulesetFile "";
         stopScript = checkScript cfg.stopRulesetFile "stop";
       in {

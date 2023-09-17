@@ -1,40 +1,40 @@
-{ machineTest
-, flakes
-, ... }:
-
-machineTest ({ config, ... }: {
-
-  imports = [ flakes.self.nixosModules.default ];
+{
+  machineTest,
+  flakes,
+  ...
+}:
+machineTest ({config, ...}: {
+  imports = [flakes.self.nixosModules.default];
 
   networking.nftables.firewall = {
     enable = true;
-    zones.a.interfaces = [ "a" ];
-    zones.b.interfaces = [ "b" ];
+    zones.a.interfaces = ["a"];
+    zones.b.interfaces = ["b"];
 
     rules.ssh.enable = false;
 
     rules.forward = {
-      from = [ "a" ];
-      to = [ "b" ];
-      allowedTCPPorts = [ 22 ];
+      from = ["a"];
+      to = ["b"];
+      allowedTCPPorts = [22];
     };
 
     rules.from-all = {
       from = "all";
-      to = [ "b" ];
-      allowedTCPPorts = [ 25 ];
+      to = ["b"];
+      allowedTCPPorts = [25];
     };
 
     rules.to-all = {
-      from = [ "a" ];
+      from = ["a"];
       to = "all";
-      allowedTCPPorts = [ 80 ];
+      allowedTCPPorts = [80];
     };
 
     rules.from-to-all = {
       from = "all";
       to = "all";
-      allowedTCPPorts = [ 42 ];
+      allowedTCPPorts = [42];
     };
   };
 
@@ -94,5 +94,4 @@ machineTest ({ config, ... }: {
       }
     '';
   };
-
 })

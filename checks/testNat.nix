@@ -1,19 +1,19 @@
-{ machineTest
-, flakes
-, ... }:
-
-machineTest ({ config, ... }: {
-
-  imports = [ flakes.self.nixosModules.default ];
+{
+  machineTest,
+  flakes,
+  ...
+}:
+machineTest ({config, ...}: {
+  imports = [flakes.self.nixosModules.default];
 
   networking.nftables.firewall = {
     enable = true;
-    zones.a.interfaces = [ "a" ];
-    zones.b.interfaces = [ "b" ];
+    zones.a.interfaces = ["a"];
+    zones.b.interfaces = ["b"];
 
     rules.nat = {
-      from = [ "a" ];
-      to = [ "b" ];
+      from = ["a"];
+      to = ["b"];
       masquerade = true;
     };
   };
@@ -62,5 +62,4 @@ machineTest ({ config, ... }: {
       }
     '';
   };
-
 })

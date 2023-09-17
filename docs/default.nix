@@ -1,5 +1,3 @@
 flakes: final: prev: {
-
-  nixos-nftables-firewall-docs = final.callPackage ./docs.nix { inherit flakes; };
-
+  nixos-nftables-firewall-docs = final.callPackage ./docs.nix {inherit flakes;};
 }

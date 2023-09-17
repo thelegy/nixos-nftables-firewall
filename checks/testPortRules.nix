@@ -1,31 +1,42 @@
-{ machineTest
-, flakes
-, ... }:
-
-machineTest ({ config, ... }: {
-
-  imports = [ flakes.self.nixosModules.default ];
+{
+  machineTest,
+  flakes,
+  ...
+}:
+machineTest ({config, ...}: {
+  imports = [flakes.self.nixosModules.default];
 
   networking.nftables.firewall = {
     enable = true;
     rules.nose = {
       from = "all";
-      to = [ "fw" ];
-      allowedTCPPorts = [ 555 ];
+      to = ["fw"];
+      allowedTCPPorts = [555];
     };
     rules.range = {
       from = "all";
-      to = [ "fw" ];
-      allowedUDPPortRanges = [ { from = 60000; to = 62000; } ];
+      to = ["fw"];
+      allowedUDPPortRanges = [
+        {
+          from = 60000;
+          to = 62000;
+        }
+      ];
     };
     rules.multiple = {
       from = "all";
-      to = [ "fw" ];
+      to = ["fw"];
       allowedTCPPortRanges = [
-        { from = 42000; to = 42004; }
-        { from = 42005; to = 62009; }
+        {
+          from = 42000;
+          to = 42004;
+        }
+        {
+          from = 42005;
+          to = 62009;
+        }
       ];
-      allowedUDPPorts = [ 42 1337 ];
+      allowedUDPPorts = [42 1337];
     };
   };
 
@@ -80,5 +91,4 @@ machineTest ({ config, ... }: {
       }
     '';
   };
-
 })
