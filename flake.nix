@@ -28,7 +28,7 @@
 
     checks.x86_64-linux = import ./checks "x86_64-linux" flakes;
 
-    formatter = nixpkgs.lib.mapAttrs (x: x.alejandra) nixpkgs.legacyPackages;
+    formatter = nixpkgs.lib.mapAttrs (_: x: x.alejandra) nixpkgs.legacyPackages;
 
     legacyPackages = with nixpkgs.lib;
       genAttrs systems.flakeExposed (system: let
