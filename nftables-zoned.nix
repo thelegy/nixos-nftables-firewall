@@ -5,7 +5,7 @@ flakes @ {dependencyDagOfSubmodule, ...}: {
 }:
 with dependencyDagOfSubmodule.lib.bake lib; let
   cfg = config.networking.nftables.firewall;
-  ruleTypes = ["rule" "policy"];
+  ruleTypes = ["ban" "rule" "policy"];
 in {
   imports = [
     (import ./nftables-chains.nix flakes)
@@ -190,10 +190,10 @@ in {
               default = "rule";
               description = mdDoc ''
                 The type of the rule specifies when rules are applied.
-                Rules of the type `policy` are applied after all rules of the type
-                `policy` were.
+                The rules are applied in the following order:
+                ${concatMapStringsSep " then " (x: "`${x}`") ruleTypes}
 
-                Usually most rules are of the type `rule`, `policy` is mostly
+                Usually most rules are of the type `rule`, the other types are mostly
                 intended to specify special drop/reject rules.
               '';
             };
