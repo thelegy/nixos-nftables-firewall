@@ -30,7 +30,7 @@
 
     formatter = nixpkgs.lib.mapAttrs (_: x: x.alejandra) nixpkgs.legacyPackages;
 
-    legacyPackages = with nixpkgs.lib;
+    packages = with nixpkgs.lib;
       genAttrs systems.flakeExposed (system: let
         pkgs = import nixpkgs {
           inherit system;
