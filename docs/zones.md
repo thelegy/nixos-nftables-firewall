@@ -1,4 +1,4 @@
-## Zones
+# Zones
 Zones define a part of network topology.
 They are usually defined as a list of subnets or by a list of interfaces, though custom rules for matching traffic are possible.
 There exists an implicit `all` Zone, that matches all traffic.

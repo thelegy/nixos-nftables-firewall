@@ -117,7 +117,7 @@ with lib; let
             (filterAttrs (k: v: hasSuffix ".md" k && v == "regular"))
             (mapAttrs (k: _: fileContents "${./.}/${k}"))
             (mapAttrs (_: sustituteOptions))
-            (mapAttrsToList (k: writeTextDir "docs/${k}"))
+            (mapAttrsToList writeTextDir)
           ];
         };
     };
@@ -132,15 +132,19 @@ with lib; let
   repo = "nixos-nftables-firewall";
   desc = "A zone based firewall built ontop of nftables for nixos";
 
+  readme = runCommand "readme.md" {} ''
+    substitute ${../README.md} $out --replace "https://thelegy.github.io/nixos-nftables-firewall/" "/"
+  '';
+
   indexRst = writeTextDir "index.rst" ''
-    .. include:: ../../../${../README.md}
-       :parser: markdown
+    .. include:: ../../../${readme}
+       :parser: myst_parser.sphinx_
     .. rubric:: Table of contents
     .. toctree::
        :maxdepth: 3
        :glob:
 
-       docs/*
+       *
   '';
 
   docsSrc = symlinkJoin {
@@ -154,11 +158,6 @@ with lib; let
 
   sphinxConfig = writeTextDir "conf.py" ''
     extensions = ['myst_parser']
-    myst_commonmark_only = True
-    source_suffix = {
-        '.rst': 'restructuredtext',
-        '.md': 'markdown',
-    }
     highlight_language = 'nix'
     project = '${repo}';
     html_theme_options = {
