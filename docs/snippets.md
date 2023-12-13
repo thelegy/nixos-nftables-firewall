@@ -10,6 +10,9 @@ Snippets are considered less stable than the rest of this repository. As they us
 This snippets enables the firewall and many other snippets. Currently the following ones get enables.
 %networking.nftables.firewall.snippets.nnf-common%
 
+## nnf-default-stopRuleset
+%networking.nftables.firewall.snippets.nnf-default-stopRuleset%
+
 ## nnf-conntrack
 %networking.nftables.firewall.snippets.nnf-conntrack%
 
