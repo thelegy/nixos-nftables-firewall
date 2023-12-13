@@ -7,7 +7,7 @@ with lib; let
   cfg = config.networking.nftables.firewall.snippets;
   localZoneName = config.networking.nftables.firewall.localZoneName;
 
-  ruleTypes = ["rule" "policy"];
+  toPortList = ports: assert length ports > 0; "{ ${concatStringsSep ", " (map toString ports)} }";
 in {
   imports = [
     (import ./nftables-zoned.nix flakes)
@@ -16,6 +16,17 @@ in {
   options.networking.nftables.firewall.snippets = {
     nnf-common = {
       enable = mkEnableOption (mdDoc "the nnf-common firewall snippet");
+    };
+
+    nnf-default-stopRuleset = {
+      enable = mkEnableOption (mdDoc "the nnf-default-stopRuleset snippet");
+      allowedTCPPorts = mkOption {
+        type = types.listOf types.port;
+        default = config.services.openssh.ports;
+        description = mdDoc ''
+          List of allowd TCP ports while the firewall is disabled.
+        '';
+      };
     };
 
     nnf-conntrack = {
@@ -66,6 +77,7 @@ in {
       networking.nftables.firewall.enable = true;
       networking.nftables.firewall.snippets = mkDefault {
         nnf-conntrack.enable = true;
+        nnf-default-stopRuleset.enable = true;
         nnf-drop.enable = true;
         nnf-loopback.enable = true;
         nnf-dhcpv6.enable = true;
@@ -73,6 +85,48 @@ in {
         nnf-ssh.enable = true;
         nnf-nixos-firewall.enable = true;
       };
+    })
+
+    (mkIf cfg.nnf-default-stopRuleset.enable {
+      networking.nftables.stopRuleset = let
+        ports = cfg.nnf-default-stopRuleset.allowedTCPPorts;
+      in
+        mkDefault ''
+          # Check out https://wiki.nftables.org/ for better documentation.
+          # Table for both IPv4 and IPv6.
+          table inet filter {
+            # Block all incomming connections traffic except SSH and "ping".
+            chain input {
+              type filter hook input priority 0; policy drop
+
+              # accept any localhost traffic
+              iifname lo accept
+
+              # accept traffic originated from us
+              ct state {established, related} accept
+
+              # ICMP
+              # routers may also want: mld-listener-query, nd-router-solicit
+              ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
+              ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept
+
+              # allow "ping"
+              ip6 nexthdr icmpv6 icmpv6 type echo-request accept
+              ip protocol icmp icmp type echo-request accept
+
+              # accept SSH connections (required for a server)
+              ${optionalString (ports > 0) "tcp dport ${toPortList ports} accept"}
+
+              # count and drop any other traffic
+              counter drop
+            }
+
+            chain forward {
+              type filter hook forward priority 0; policy drop
+              counter drop
+            }
+          }
+        '';
     })
 
     (mkIf cfg.nnf-conntrack.enable {
