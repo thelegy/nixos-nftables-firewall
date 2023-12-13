@@ -162,7 +162,7 @@ with lib; let
     highlight_language = 'nix'
     project = '${repo}';
     html_theme_options = {
-      'github_banner': 'true',
+      'github_banner': 'false',
       'github_button': 'true',
       'github_user': '${owner}',
       'github_repo': '${repo}',
