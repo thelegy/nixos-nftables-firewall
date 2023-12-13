@@ -144,6 +144,7 @@ with lib; let
        :maxdepth: 3
        :glob:
 
+       quickstart
        *
   '';
 
