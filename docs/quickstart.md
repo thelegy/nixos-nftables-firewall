@@ -39,7 +39,7 @@ Snippets are very opinionated and may change in unexpected ways, though they are
 I encourage you to read through what the snippets do, you use and maybe even to copy them, so you are in control how they change.
 For now we will just use them.
 
-We will look at the following `configuration.nix´.
+We will look at the following `configuration.nix`.
 ```
 {config, ...}: {
   ...
