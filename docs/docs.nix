@@ -80,7 +80,7 @@ with lib; let
         ${codeBlock option.type}
       ''}
 
-      ${optionalString (! isNull option.defaul or null) ''
+      ${optionalString (! isNull option.default or null) ''
         ${fieldName "Default"}
         ${renderCode option.default}
       ''}
