@@ -1,0 +1,21 @@
+.nixopt {
+  display: grid;
+  grid-template-columns: min-content 1fr;
+  gap: .5em;
+}
+.nixopt > * {
+  grid-column: 2;
+  margin: 0 !important;
+}
+.nixopt > .fieldname {
+  grid-column: 1;
+  text-align: right;
+  font-weight: 700;
+  font-size: .9em;
+}
+.nixopt > div > div > pre {
+  padding: .75em .5em;
+}
+body div.body {
+  max-width: unset;
+}

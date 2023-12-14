@@ -1,14 +1,12 @@
 {
-  runCommand,
   flakes,
-  formats,
   lib,
   path,
   pkgs,
   python3,
+  runCommand,
   symlinkJoin,
   system,
-  writeText,
   writeTextDir,
 }:
 with lib; let
@@ -64,17 +62,35 @@ with lib; let
       builtins.unsafeDiscardStringContext
       strings.fromJSON
     ];
+    codeBlock = code: "```\n${code}\n```";
+    fieldName = name: "<div class=\"fieldname\">${name}</div>\n";
     renderOptionDoc = name: option: ''
       ### ${escapeXML name}
+
+      <div class="nixopt">
+
+      ${fieldName "Name"}
+      ${codeBlock name}
+
+      ${fieldName "Description"}
       ${replaceStrings ["<literal>" "</literal>"] ["`" "`"] option.description}
 
-      ${optionalString (! isNull option.type or null) "*_Type_*\n```\n${option.type}\n```"}
+      ${optionalString (! isNull option.type or null) ''
+        ${fieldName "Type"}
+        ${codeBlock option.type}
+      ''}
 
+      ${optionalString (! isNull option.defaul or null) ''
+        ${fieldName "Default"}
+        ${renderCode option.default}
+      ''}
 
-      ${optionalString (! isNull option.default or null) "*_Default_*\n${renderCode option.default}"}
+      ${optionalString (! isNull option.example or null) ''
+        ${fieldName "Example"}
+        ${renderCode option.example}
+      ''}
 
-
-      ${optionalString (! isNull option.example or null) "*Example*\n${renderCode option.example}"}
+      </div>
     '';
   in (mapAttrs renderOptionDoc optionsDocParsed);
 
@@ -148,12 +164,18 @@ with lib; let
        *
   '';
 
+  staticDir = runCommand "static" {} ''
+    mkdir -p $out/static
+    ln -s ${./custom.css} $out/static/custom.css
+  '';
+
   docsSrc = symlinkJoin {
     name = "docsSrc";
     paths = [
       sphinxConfig
       indexRst
       renderedDocs
+      staticDir
     ];
   };
 
@@ -161,12 +183,19 @@ with lib; let
     extensions = ['myst_parser']
     highlight_language = 'nix'
     project = '${repo}';
+    html_static_path = [ 'static' ];
     html_theme_options = {
+      'code_font_family': 'monospace',
+      'code_font_size': '1em',
+      'description': '${desc}',
+      'font_family': 'sans-serif',
+      'font_size': '1em',
       'github_banner': 'false',
       'github_button': 'true',
-      'github_user': '${owner}',
       'github_repo': '${repo}',
-      'description': '${desc}',
+      'github_user': '${owner}',
+      'page_width': 'min(90rem, calc(100vw - 4rem))',
+      'show_powered_by': 'false',
     }
   '';
 
