@@ -23,6 +23,7 @@ in {
       allowedTCPPorts = mkOption {
         type = types.listOf types.port;
         default = config.services.openssh.ports;
+        defaultText = literalExpression "config.services.openssh.ports";
         description = mdDoc ''
           List of allowd TCP ports while the firewall is disabled.
         '';
