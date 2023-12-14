@@ -8,6 +8,7 @@ machineTest ({config, ...}: {
 
   networking.nftables.firewall = {
     enable = true;
+    snippets.nnf-common.enable = false;
     rules.nose = {
       from = "all";
       to = ["fw"];

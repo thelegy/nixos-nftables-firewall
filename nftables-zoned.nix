@@ -309,6 +309,20 @@ in {
         }
       ];
 
+      networking.nftables.firewall.snippets.nnf-common.enable = let
+        msg = concatStringsSep " " [
+          "To ease the migration for the nixos-nftables-firewall moving to snippets"
+          "the option `networking.nftables.firewall.snippets.nnf-common.enable` has"
+          "been defaulted to `true`. It will some day be switched to default to `false`"
+          "Please review, if these snippets do, what you need, make overrides as needed"
+          "and be warned, that their functionality might change in the future."
+          "You can read more about snippets here:\n"
+          "https://thelegy.github.io/nixos-nftables-firewall/snippets/\n"
+          "To remove this warning manually define the option."
+        ];
+      in
+        mkOverride 1499 (warn msg true);
+
       networking.nftables.firewall.zones.${cfg.localZoneName} = {
         localZone = true;
       };

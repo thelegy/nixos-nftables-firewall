@@ -73,8 +73,16 @@ in {
   };
 
   config = mkMerge [
+    {
+      assertions = [
+        {
+          assertion = cfg.nnf-common.enable -> config.networking.nftables.firewall.enable;
+          message = "You enabled the `nnf-common` firewall snippet, but you did not enable the firewall itself.";
+        }
+      ];
+    }
+
     (mkIf cfg.nnf-common.enable {
-      networking.nftables.firewall.enable = true;
       networking.nftables.firewall.snippets = mkDefault {
         nnf-conntrack.enable = true;
         nnf-default-stopRuleset.enable = true;

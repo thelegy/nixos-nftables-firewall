@@ -7,6 +7,7 @@ machineTest ({config, ...}: {
   imports = [flakes.self.nixosModules.default];
 
   networking.nftables.firewall = {
+    enable = true;
     snippets.nnf-common.enable = true;
     zones.a.interfaces = ["a"];
     zones.b.interfaces = ["b"];

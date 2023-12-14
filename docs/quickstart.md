@@ -49,7 +49,6 @@ We will look at the following `configuration.nix´.
     snippets.nnf-common.enable = true;
 ```
 This will enable the firewall and also the `nnf-common` snippet.
-(Actually the snippet will also enable the firewall, so if you are using it, enabling it by hand is not required.)
 
 ### Zones
 Next we will add some [zones](zones):
