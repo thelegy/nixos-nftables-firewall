@@ -112,7 +112,7 @@ with dependencyDagOfSubmodule.lib.bake lib; let
   };
 in {
   imports = [
-    (import ./nftables.nix flakes)
+    flakes.self.nixosModules.nftables
   ];
 
   options = {

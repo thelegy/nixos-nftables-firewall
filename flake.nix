@@ -9,11 +9,16 @@
   };
 
   outputs = flakes @ {nixpkgs, ...}: {
-    nixosModules = rec {
-      nftables = import ./nftables.nix flakes;
-      nftables-chains = import ./nftables-chains.nix flakes;
-      nftables-zoned = import ./nftables-zoned.nix flakes;
-      nftables-snippets = import ./nftables-snippets.nix flakes;
+    nixosModules = let
+      module = file: {
+        _file = file;
+        imports = [(import file flakes)];
+      };
+    in rec {
+      nftables = module ./nftables.nix;
+      nftables-chains = module ./nftables-chains.nix;
+      nftables-zoned = module ./nftables-zoned.nix;
+      nftables-snippets = module ./nftables-snippets.nix;
 
       default = nftables-snippets;
 

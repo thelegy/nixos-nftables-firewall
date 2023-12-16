@@ -10,7 +10,7 @@ with lib; let
   toPortList = ports: assert length ports > 0; "{ ${concatStringsSep ", " (map toString ports)} }";
 in {
   imports = [
-    (import ./nftables-zoned.nix flakes)
+    flakes.self.nixosModules.nftables-zoned
   ];
 
   options.networking.nftables.firewall.snippets = {
