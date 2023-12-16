@@ -8,7 +8,7 @@ with dependencyDagOfSubmodule.lib.bake lib; let
   ruleTypes = ["ban" "rule" "policy"];
 in {
   imports = [
-    flakes.self.nixosModules.nftables-chains
+    flakes.self.nixosModules.chains
   ];
 
   options.networking.nftables.firewall = {

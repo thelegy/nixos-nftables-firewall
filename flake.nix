@@ -15,12 +15,12 @@
         imports = [(import file flakes)];
       };
     in rec {
-      nftables = module ./nftables.nix;
-      nftables-chains = module ./nftables-chains.nix;
-      nftables-zoned = module ./nftables-zoned.nix;
-      nftables-snippets = module ./nftables-snippets.nix;
+      nftables = module ./modules/nftables.nix;
+      chains = module ./modules/chains.nix;
+      zoned = module ./modules/zoned.nix;
+      snippets = module ./modules/snippets.nix;
 
-      default = nftables-snippets;
+      default = snippets;
 
       full = with nixpkgs.lib; let
         msg = concatStringsSep " " [
