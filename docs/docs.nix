@@ -64,6 +64,7 @@ with lib; let
     ];
     codeBlock = code: "```\n${code}\n```";
     fieldName = name: "<div class=\"fieldname\">${name}</div>\n";
+    modulePath = path: head (strings.match "/nix/store/[^/]+/(.*)" path);
     renderOptionDoc = name: option: ''
       ### ${escapeXML name}
 
@@ -89,6 +90,14 @@ with lib; let
         ${fieldName "Example"}
         ${renderCode option.example}
       ''}
+
+
+      ${fieldName "Declared in"}
+      ${flip concatMapStrings option.declarations (x: ''
+
+        <a href="https://github.com/${owner}/${repo}/blob/main/${modulePath x}" target="_blank">${modulePath x}</a>
+
+      '')}
 
       </div>
     '';
