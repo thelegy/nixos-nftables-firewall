@@ -108,7 +108,7 @@ in {
         checkScript = rulesetFile: name:
           pkgs.writeScript "nftables-${name}check" ''
             #! ${pkgs.runtimeShell} -e
-            if $(${pkgs.kmod}/bin/lsmod | grep -q ip_tables); then
+            if $(cat /proc/modules | grep -q ip_tables); then
               echo "Unload ip_tables before using nftables!" 1>&2
               exit 1
             else
