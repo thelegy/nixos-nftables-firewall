@@ -173,8 +173,16 @@ in {
       };
     in
       mkOption {
-        type = types.dependencyDagOfSubmodule ({name, ...}: {
+        type = types.dependencyDagOfSubmodule ({
+          name,
+          config,
+          ...
+        }: {
           options = with types; {
+            assertions = mkOption {
+              type = with types; listOf attrs;
+              internal = true;
+            };
             name = mkOption {
               type = str;
               internal = true;
@@ -232,8 +240,35 @@ in {
               type = types.listOf types.str;
               default = [];
             };
+            ignoreEmptyRule = mkOption {
+              type = types.bool;
+              default = false;
+              description = mdDoc ''
+                Usually rules without effect will fail the build.
+                Enable this switch to suppress the check for this rule.
+              '';
+            };
           };
-          config.name = name;
+          config = let
+            hasAllowedTCPPorts = length config.allowedTCPPorts > 0;
+            hasAllowedUDPPorts = length config.allowedUDPPorts > 0;
+            hasAllowedTCPPortRanges = length config.allowedTCPPortRanges > 0;
+            hasAllowedUDPPortRanges = length config.allowedUDPPortRanges > 0;
+            hasVerdict = ! isNull config.verdict;
+            hasMasquerade = config.masquerade;
+            hasExtraLines = length config.extraLines > 0;
+          in {
+            assertions = flatten [
+              {
+                assertion = config.ignoreEmptyRule || hasAllowedTCPPorts || hasAllowedUDPPorts || hasAllowedTCPPortRanges || hasAllowedUDPPortRanges || hasVerdict || hasMasquerade || hasExtraLines;
+                message = ''
+                  You need to specify at least of of the following for `networking.nftables.firewall.rules."${name}"`:
+                  allowedTCPPorts, allowedUDPPorts, allowedTCPPortRanges, allowedUDPPortRanges, verdict, extraLines
+                '';
+              }
+            ];
+            name = name;
+          };
         });
         default = {};
       };
@@ -295,6 +330,7 @@ in {
   in
     mkIf cfg.enable rec {
       assertions = flatten [
+        (map (rule: rule.assertions) rules)
         (map (zone: zone.assertions) sortedZones)
         {
           assertion = (count (x: x.localZone) sortedZones) == 1;

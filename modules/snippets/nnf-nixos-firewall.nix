@@ -19,6 +19,7 @@ in
         to = [localZoneName];
         allowedTCPPorts = config.networking.firewall.allowedTCPPorts;
         allowedUDPPorts = config.networking.firewall.allowedUDPPorts;
+        ignoreEmptyRule = true;
       };
     };
   }
