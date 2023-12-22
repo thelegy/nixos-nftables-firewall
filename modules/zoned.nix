@@ -263,7 +263,7 @@ in {
                 assertion = config.ignoreEmptyRule || hasAllowedTCPPorts || hasAllowedUDPPorts || hasAllowedTCPPortRanges || hasAllowedUDPPortRanges || hasVerdict || hasMasquerade || hasExtraLines;
                 message = ''
                   You need to specify at least of of the following for `networking.nftables.firewall.rules."${name}"`:
-                  allowedTCPPorts, allowedUDPPorts, allowedTCPPortRanges, allowedUDPPortRanges, verdict, extraLines
+                  allowedTCPPorts, allowedUDPPorts, allowedTCPPortRanges, allowedUDPPortRanges, verdict, extraLines, ignoreEmptyRule
                 '';
               }
             ];
