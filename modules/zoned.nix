@@ -287,13 +287,6 @@ in {
       }";
     in "traverse-from-${zoneSpec from matchFromSubzones}-to-${zoneSpec to matchToSubzones}-${ruleType}";
 
-    concatNonEmptyStringsSep = sep: strings:
-      pipe strings [
-        (filter (x: x != null))
-        (filter (x: stringLength x > 0))
-        (concatStringsSep sep)
-      ];
-
     zones = filterAttrs (_: zone: zone.enable) cfg.zones;
     sortedZones = types.dependencyDagOfSubmodule.toOrderedList cfg.zones;
 
@@ -328,7 +321,7 @@ in {
       then filter (x: x.name != "all" && ! x.localZone && isNull x.parent) sortedZones
       else filter (x: x.parent == parent.name) sortedZones;
   in
-    mkIf cfg.enable rec {
+    mkIf cfg.enable {
       assertions = flatten [
         (map (rule: rule.assertions) rules)
         (map (zone: zone.assertions) sortedZones)
