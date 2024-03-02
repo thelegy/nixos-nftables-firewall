@@ -18,13 +18,21 @@ in
           after = mkForce ["veryEarly"];
           before = ["early"];
           rules = [
-            "ct state {established, related} accept"
+            {
+              onExpression = "ct state {established, related}";
+              jump = "conntrack";
+            }
             "ct state invalid drop"
           ];
         };
       in {
         input.conntrack = conntrackRule;
         forward.conntrack = conntrackRule;
+        conntrack.accept = {
+          after = ["late"];
+          before = mkForce ["veryLate"];
+          rules = ["accept"];
+        };
       };
     };
   }
