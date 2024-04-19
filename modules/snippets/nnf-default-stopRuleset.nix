@@ -49,7 +49,7 @@ in
               ip protocol icmp icmp type echo-request accept
 
               # accept SSH connections (required for a server)
-              ${optionalString (ports > 0) "tcp dport ${toPortList ports} accept"}
+              ${optionalString (length ports > 0) "tcp dport ${toPortList ports} accept"}
 
               # count and drop any other traffic
               counter drop
