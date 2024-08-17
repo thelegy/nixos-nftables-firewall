@@ -22,5 +22,7 @@ in
       testInheritance = import ./testInheritance.nix lib;
 
       testRuleType = import ./testRuleType.nix lib;
+
+      testNixosFirewall = import ./testNixosFirewall.nix lib;
     };
   }
