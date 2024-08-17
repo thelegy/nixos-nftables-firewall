@@ -18,7 +18,9 @@ in
         from = mkDefault "all";
         to = [localZoneName];
         allowedTCPPorts = config.networking.firewall.allowedTCPPorts;
+        allowedTCPPortRanges = config.networking.firewall.allowedTCPPortRanges;
         allowedUDPPorts = config.networking.firewall.allowedUDPPorts;
+        allowedUDPPortRanges = config.networking.firewall.allowedUDPPortRanges;
         ignoreEmptyRule = true;
       };
     };
