@@ -63,7 +63,7 @@ machineTest ({config, ...}: {
   };
 
   output = {
-    expr = config.build.nftables-chains.ruleset;
+    expr = config.networking.nftables.ruleset;
     expected = ''
       table inet firewall {
 

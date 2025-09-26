@@ -22,5 +22,7 @@ in
       testInheritance = import ./testInheritance.nix lib;
 
       testRuleType = import ./testRuleType.nix lib;
+
+      testSets = import ./testSets.nix lib;
     };
   }

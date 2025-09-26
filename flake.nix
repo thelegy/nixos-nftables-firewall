@@ -19,6 +19,8 @@
       chains = module ./modules/chains.nix;
       zoned = module ./modules/zoned.nix;
       snippets = module ./modules/snippets.nix;
+      sets = module ./modules/sets.nix;
+      ruleset = module ./modules/ruleset.nix;
 
       default = snippets;
 

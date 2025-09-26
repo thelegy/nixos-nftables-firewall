@@ -1,4 +1,4 @@
-flakes @ {dependencyDagOfSubmodule, ...}: {
+{dependencyDagOfSubmodule, ...}: {
   lib,
   config,
   ...
@@ -111,10 +111,6 @@ with dependencyDagOfSubmodule.lib.bake lib; let
     };
   };
 in {
-  imports = [
-    flakes.self.nixosModules.nftables
-  ];
-
   options = {
     networking.nftables.chains = mkOption {
       type = types.attrsOf chainType;
@@ -167,16 +163,5 @@ in {
       naturalSort
       (map (x: renderedChains.${x}))
     ];
-
-    ruleset = ''
-      table inet firewall {
-      ${concatMapStrings (x: "\n${x}\n") requiredChains}
-      }
-    '';
   };
-
-  config.networking.nftables.ruleset = let
-    inherit (config.build.nftables-chains) requiredChains ruleset;
-  in
-    mkIf (length requiredChains > 0) ruleset;
 }
