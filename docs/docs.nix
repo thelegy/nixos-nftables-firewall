@@ -55,7 +55,6 @@ with lib; let
     optionsDoc = import "${path}/nixos/lib/make-options-doc" {
       inherit pkgs lib options;
       warningsAreErrors = false;
-      allowDocBook = false;
     };
     optionsDocParsed = pipe "${optionsDoc.optionsJSON}/share/doc/nixos/options.json" [
       readFile
