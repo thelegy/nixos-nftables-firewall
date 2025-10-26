@@ -8,7 +8,7 @@ in
   with lib; {
     options.networking.nftables.firewall.snippets = {
       nnf-common = {
-        enable = mkEnableOption (mdDoc "the nnf-common firewall snippet");
+        enable = mkEnableOption ("the nnf-common firewall snippet");
       };
     };
 

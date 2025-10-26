@@ -8,7 +8,7 @@ in
   with lib; {
     options.networking.nftables.firewall.snippets = {
       nnf-drop = {
-        enable = mkEnableOption (mdDoc "the nnf-drop firewall snippet");
+        enable = mkEnableOption ("the nnf-drop firewall snippet");
       };
     };
 

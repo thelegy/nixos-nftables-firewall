@@ -8,12 +8,12 @@ in
   with lib; {
     options.networking.nftables.firewall.snippets = {
       nnf-default-stopRuleset = {
-        enable = mkEnableOption (mdDoc "the nnf-default-stopRuleset snippet");
+        enable = mkEnableOption ("the nnf-default-stopRuleset snippet");
         allowedTCPPorts = mkOption {
           type = types.listOf types.port;
           default = config.services.openssh.ports;
           defaultText = literalExpression "config.services.openssh.ports";
-          description = mdDoc ''
+          description = ''
             List of allowd TCP ports while the firewall is disabled.
           '';
         };

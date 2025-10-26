@@ -9,7 +9,7 @@ in
   with lib; {
     options.networking.nftables.firewall.snippets = {
       nnf-nixos-firewall = {
-        enable = mkEnableOption (mdDoc "the nnf-nixos-firewall firewall snippet");
+        enable = mkEnableOption ("the nnf-nixos-firewall firewall snippet");
       };
     };
 
