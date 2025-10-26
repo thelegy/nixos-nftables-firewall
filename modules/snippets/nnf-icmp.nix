@@ -9,18 +9,18 @@ in
   with lib; {
     options.networking.nftables.firewall.snippets = {
       nnf-icmp = {
-        enable = mkEnableOption (mdDoc "the nnf-icmp firewall snippet");
+        enable = mkEnableOption ("the nnf-icmp firewall snippet");
         ipv6Types = mkOption {
           type = types.listOf types.str;
           default = ["echo-request" "nd-router-advert" "nd-neighbor-solicit" "nd-neighbor-advert"];
-          description = mdDoc ''
+          description = ''
             List of allowed ICMPv6 types.
           '';
         };
         ipv4Types = mkOption {
           type = types.listOf types.str;
           default = ["echo-request" "router-advertisement"];
-          description = mdDoc ''
+          description = ''
             List of allowed ICMP types.
           '';
         };

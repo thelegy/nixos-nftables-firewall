@@ -55,7 +55,6 @@ in {
         }
       '';
       description =
-        mdDoc
         ''
           The ruleset to be used with nftables.  Should be in a format that
           can be loaded using "/bin/nft -f".  The ruleset is only applied,
@@ -75,7 +74,6 @@ in {
         };
       '';
       description =
-        mdDoc
         ''
           The ruleset file to be used with nftables.  Should be in a format that
           can be loaded using "nft -f".  The ruleset is only applied,

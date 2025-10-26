@@ -8,7 +8,7 @@ in
   with lib; {
     options.networking.nftables.firewall.snippets = {
       nnf-loopback = {
-        enable = mkEnableOption (mdDoc "the nnf-loopback firewall snippet");
+        enable = mkEnableOption ("the nnf-loopback firewall snippet");
       };
     };
 

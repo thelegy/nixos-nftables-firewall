@@ -111,7 +111,7 @@ with lib; let
     }: {
       options.output = mkOption {
         type = types.anything;
-        description = mdDoc "";
+        description = "";
       };
       config.output = let
         optionDocs = pipe options [

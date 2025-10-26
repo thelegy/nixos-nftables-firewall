@@ -9,7 +9,7 @@ in
   with lib; {
   options.networking.nftables.firewall.snippets = {
     nnf-dhcpv6 = {
-      enable = mkEnableOption (mdDoc "the nnf-dhcpv6 firewall snippet");
+      enable = mkEnableOption ("the nnf-dhcpv6 firewall snippet");
     };
   };
 

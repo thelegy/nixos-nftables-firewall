@@ -9,7 +9,7 @@ in
   with lib; {
     options.networking.nftables.firewall.snippets = {
       nnf-ssh = {
-        enable = mkEnableOption (mdDoc "the nnf-ssh firewall snippet");
+        enable = mkEnableOption ("the nnf-ssh firewall snippet");
       };
     };
 

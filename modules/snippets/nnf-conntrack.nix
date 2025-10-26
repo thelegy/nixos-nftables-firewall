@@ -8,7 +8,7 @@ in
   with lib; {
     options.networking.nftables.firewall.snippets = {
       nnf-conntrack = {
-        enable = mkEnableOption (mdDoc "the nnf-conntrack firewall snippet");
+        enable = mkEnableOption ("the nnf-conntrack firewall snippet");
       };
     };
 

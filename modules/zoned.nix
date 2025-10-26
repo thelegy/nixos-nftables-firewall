@@ -12,12 +12,12 @@ in {
   ];
 
   options.networking.nftables.firewall = {
-    enable = mkEnableOption (mdDoc "the zoned nftables based firewall");
+    enable = mkEnableOption ("the zoned nftables based firewall");
 
     localZoneName = mkOption {
       type = types.str;
       default = "fw";
-      description = mdDoc ''
+      description = ''
         A zone using this name will be defined that matches the traffic of the
         `input` and `output` nft chains. This zone must not be changed. If you
         need to further devide the traffic you can define new zones, that have
@@ -53,7 +53,7 @@ in {
             type = with types; nullOr str;
             default = null;
             example = literalExpression "config.networking.nftables.firewall.localZoneName";
-            description = mdDoc ''
+            description = ''
               Additionally to `ingressExpression` and `egressExpression` zones
               can also be defined as a subzone of another zone. If so, traffic
               is matched only against the `ingressExpression` and
@@ -71,7 +71,7 @@ in {
             type = with types; listOf str;
             default = [];
             example = literalExpression ''[ "eth0" ]'';
-            description = mdDoc ''
+            description = ''
               Shorthand for defining `ingressExpression` and `egressExpression`
               using `iifname` and `oifname` respectively.
 
@@ -82,7 +82,7 @@ in {
             type = with types; listOf str;
             default = [];
             example = literalExpression ''[ "192.168.0.0/24" ]'';
-            description = mdDoc ''
+            description = ''
               Shorthand for defining `ingressExpression` and `egressExpression`
               using `ip saddr` and `ip daddr` respectively.
 
@@ -93,7 +93,7 @@ in {
             type = with types; listOf str;
             default = [];
             example = literalExpression ''[ "2042::/16" ]'';
-            description = mdDoc ''
+            description = ''
               Shorthand for defining `ingressExpression` and `egressExpression`
               using `ip6 saddr` and `ip6 daddr` respectively.
 
@@ -103,7 +103,7 @@ in {
           ingressExpression = mkOption {
             type = types.listOf types.str;
             default = [];
-            description = mdDoc ''
+            description = ''
               `ingressExpression` and `egressExpression` contain nft-espressions
               to match traffic, that defines the zone. Traffic matched by the
               `ingressExpression` is considered originating in the zone, while
@@ -196,7 +196,7 @@ in {
             ruleType = mkOption {
               type = enum ruleTypes;
               default = "rule";
-              description = mdDoc ''
+              description = ''
                 The type of the rule specifies when rules are applied.
                 The rules are applied in the following order:
                 ${concatMapStringsSep " then " (x: "`${x}`") ruleTypes}
@@ -230,7 +230,7 @@ in {
             masquerade = mkOption {
               type = types.bool;
               default = false;
-              description = mdDoc ''
+              description = ''
                 This option currently generates output that may be broken.
                 Use at your own risk!
               '';
@@ -243,7 +243,7 @@ in {
             ignoreEmptyRule = mkOption {
               type = types.bool;
               default = false;
-              description = mdDoc ''
+              description = ''
                 Usually rules without effect will fail the build.
                 Enable this switch to suppress the check for this rule.
               '';
