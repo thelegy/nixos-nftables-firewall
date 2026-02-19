@@ -11,7 +11,7 @@
 }:
 with lib;
 let
-  nnf = import ../default.nix flakes;
+  nnf = import ../default.nix;
 
   collectOptionPaths =
     y:

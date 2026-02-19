@@ -1,8 +1,8 @@
 system:
-flakes@{ nixpkgs, ... }:
+{ nixpkgs, ... }:
 let
   lib = nixpkgs.lib.extend (import ./utils.nix system nixpkgs) // {
-    nnf = import ../default.nix flakes;
+    nnf = import ../default.nix;
   };
 in
 with lib;

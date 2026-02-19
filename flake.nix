@@ -1,5 +1,3 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-
-  outputs = inputs: import ./default.nix inputs;
+  outputs = _: import ./default.nix;
 }
