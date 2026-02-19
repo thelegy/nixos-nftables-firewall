@@ -1,8 +1,9 @@
 system:
 { nixpkgs, ... }:
+nnf:
 let
   lib = nixpkgs.lib.extend (import ./utils.nix system nixpkgs) // {
-    nnf = import ../default.nix;
+    inherit nnf;
   };
 in
 with lib;

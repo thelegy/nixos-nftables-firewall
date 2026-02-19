@@ -1,10 +1,10 @@
-{ inputs, ... }:
+{ inputs, nnf, ... }:
 {
 
   perSystem =
     { system, ... }:
     {
-      checks = import ../../checks system inputs;
+      checks = import ../../checks system inputs nnf;
     };
 
 }

@@ -1,5 +1,6 @@
 {
   lib,
+  nnf,
   path,
   pkgs,
   python3,
@@ -9,8 +10,6 @@
 }:
 with lib;
 let
-  nnf = import ../default.nix;
-
   collectOptionPaths =
     y:
     concatLists (
