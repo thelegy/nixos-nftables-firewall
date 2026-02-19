@@ -1,4 +1,4 @@
-system: nixpkgs: lfinal: lprev: with lfinal; {
+system: nixpkgs: lfinal: _lprev: with lfinal; {
   run-tests =
     tests:
     let

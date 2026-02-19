@@ -106,9 +106,8 @@ let
   renderedDocs =
     let
       nixosModule =
-        args@{
+        {
           options,
-          pkgs,
           ...
         }:
         {

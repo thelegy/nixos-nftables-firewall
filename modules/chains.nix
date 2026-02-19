@@ -15,7 +15,7 @@ let
   ) config.networking.nftables.chains;
 
   chainRules = mapAttrs (
-    k: v:
+    _k: v:
     pipe v [
       (map (x: x.processedRule))
       (filter (x: x != { }))
