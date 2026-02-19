@@ -1,12 +1,15 @@
-{...}: {
+{ ... }:
+{
   config,
   pkgs,
   lib,
   ...
 }:
-with lib; let
+with lib;
+let
   cfg = config.networking.nftables;
-in {
+in
+{
   ###### interface
 
   options = {
@@ -54,12 +57,11 @@ in {
           }
         }
       '';
-      description =
-        ''
-          The ruleset to be used with nftables.  Should be in a format that
-          can be loaded using "/bin/nft -f".  The ruleset is only applied,
-          when the unit is stopped.
-        '';
+      description = ''
+        The ruleset to be used with nftables.  Should be in a format that
+        can be loaded using "/bin/nft -f".  The ruleset is only applied,
+        when the unit is stopped.
+      '';
     };
     networking.nftables.stopRulesetFile = mkOption {
       type = types.path;
@@ -73,12 +75,11 @@ in {
           text = config.networking.nftables.stopRuleset;
         };
       '';
-      description =
-        ''
-          The ruleset file to be used with nftables.  Should be in a format that
-          can be loaded using "nft -f".  The ruleset is only applied,
-          when the unit is stopped.
-        '';
+      description = ''
+        The ruleset file to be used with nftables.  Should be in a format that
+        can be loaded using "nft -f".  The ruleset is only applied,
+        when the unit is stopped.
+      '';
     };
   };
 
@@ -86,33 +87,37 @@ in {
 
   config = mkIf cfg.enable {
     systemd.services.nftables = {
-      serviceConfig = let
-        rulesetFile =
-          if isNull cfg.rulesetFile or null
-          then pkgs.writeText "ruleset-nftables" cfg.ruleset
-          else cfg.rulesetFile;
-        rulesScript = rulesetFile: name:
-          pkgs.writeScript "nftables-${name}rules" ''
-            #! ${pkgs.nftables}/bin/nft -f
-            flush ruleset
-            include "${rulesetFile}"
-          '';
-        # This sadly does not work, b/c nft has an open world assumption wich makes --check
-        # require elevated privileges
-        #verifiedScript = rulesetFile: name: pkgs.runCommand "nftables-${name}verified" {
-        #  src = rulesScript rulesetFile name;
-        #  preferLocalBuild = true;
-        #} "${pkgs.nftables}/bin/nft -f $src -c && cp $src $out";
-        startScript = rulesScript rulesetFile "";
-        stopScript = rulesScript cfg.stopRulesetFile "stop";
-      in {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStartPre = "-${stopScript}";
-        ExecStart = mkOverride 70 startScript;
-        ExecReload = mkOverride 70 startScript;
-        ExecStop = mkOverride 70 stopScript;
-      };
+      serviceConfig =
+        let
+          rulesetFile =
+            if isNull cfg.rulesetFile or null then
+              pkgs.writeText "ruleset-nftables" cfg.ruleset
+            else
+              cfg.rulesetFile;
+          rulesScript =
+            rulesetFile: name:
+            pkgs.writeScript "nftables-${name}rules" ''
+              #! ${pkgs.nftables}/bin/nft -f
+              flush ruleset
+              include "${rulesetFile}"
+            '';
+          # This sadly does not work, b/c nft has an open world assumption wich makes --check
+          # require elevated privileges
+          #verifiedScript = rulesetFile: name: pkgs.runCommand "nftables-${name}verified" {
+          #  src = rulesScript rulesetFile name;
+          #  preferLocalBuild = true;
+          #} "${pkgs.nftables}/bin/nft -f $src -c && cp $src $out";
+          startScript = rulesScript rulesetFile "";
+          stopScript = rulesScript cfg.stopRulesetFile "stop";
+        in
+        {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStartPre = "-${stopScript}";
+          ExecStart = mkOverride 70 startScript;
+          ExecReload = mkOverride 70 startScript;
+          ExecStop = mkOverride 70 stopScript;
+        };
     };
   };
 }

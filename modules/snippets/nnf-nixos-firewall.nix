@@ -2,26 +2,28 @@
   lib,
   config,
   ...
-}: let
+}:
+let
   cfg = config.networking.nftables.firewall.snippets.nnf-nixos-firewall;
   localZoneName = config.networking.nftables.firewall.localZoneName;
 in
-  with lib; {
-    options.networking.nftables.firewall.snippets = {
-      nnf-nixos-firewall = {
-        enable = mkEnableOption ("the nnf-nixos-firewall firewall snippet");
-      };
+with lib;
+{
+  options.networking.nftables.firewall.snippets = {
+    nnf-nixos-firewall = {
+      enable = mkEnableOption ("the nnf-nixos-firewall firewall snippet");
     };
+  };
 
-    config = mkIf cfg.enable {
-      networking.nftables.firewall.rules.nixos-firewall = {
-        from = mkDefault "all";
-        to = [localZoneName];
-        allowedTCPPorts = config.networking.firewall.allowedTCPPorts;
-        allowedTCPPortRanges = config.networking.firewall.allowedTCPPortRanges;
-        allowedUDPPorts = config.networking.firewall.allowedUDPPorts;
-        allowedUDPPortRanges = config.networking.firewall.allowedUDPPortRanges;
-        ignoreEmptyRule = true;
-      };
+  config = mkIf cfg.enable {
+    networking.nftables.firewall.rules.nixos-firewall = {
+      from = mkDefault "all";
+      to = [ localZoneName ];
+      allowedTCPPorts = config.networking.firewall.allowedTCPPorts;
+      allowedTCPPortRanges = config.networking.firewall.allowedTCPPortRanges;
+      allowedUDPPorts = config.networking.firewall.allowedUDPPorts;
+      allowedUDPPortRanges = config.networking.firewall.allowedUDPPortRanges;
+      ignoreEmptyRule = true;
     };
-  }
+  };
+}
