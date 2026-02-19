@@ -13,17 +13,6 @@ inputs: {
       snippets = module ../modules/snippets.nix;
 
       default = snippets;
-
-      full =
-        with inputs.nixpkgs.lib;
-        let
-          msg = concatStringsSep " " [
-            "The nixos-nftables-firewall 'full' module has been deprecated,"
-            "please use the 'default' module instead."
-          ];
-        in
-        { ... }:
-        warn msg { imports = [ default ]; };
     };
 
   checks.x86_64-linux = import ../checks "x86_64-linux" inputs;
