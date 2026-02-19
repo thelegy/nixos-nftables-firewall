@@ -1,12 +1,10 @@
 {
-  flakes,
   lib,
   path,
   pkgs,
   python3,
   runCommand,
   symlinkJoin,
-  system,
   writeTextDir,
 }:
 with lib;
@@ -113,6 +111,21 @@ let
           ...
         }:
         {
+          options.assertions = mkOption {
+            type = types.anything;
+          };
+          options.networking.firewall = mkOption {
+            type = types.anything;
+          };
+          options.networking.nftables.enable = mkOption {
+            type = types.anything;
+          };
+          options.networking.nftables.ruleset = mkOption {
+            type = types.lines;
+          };
+          options.systemd = mkOption {
+            type = types.anything;
+          };
           options.output = mkOption {
             type = types.anything;
             description = "";
@@ -157,8 +170,7 @@ let
               ];
             };
         };
-      machine = flakes.nixpkgs.lib.nixosSystem {
-        inherit system;
+      machine = lib.evalModules {
         modules = [
           nnf.nixosModules.default
           nixosModule
