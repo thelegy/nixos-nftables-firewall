@@ -14,6 +14,4 @@ inputs: {
 
       default = snippets;
     };
-
-  checks.x86_64-linux = import ../checks "x86_64-linux" inputs;
 }

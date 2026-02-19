@@ -1,12 +1,12 @@
 {
   machineTest,
-  flakes,
+  nnf,
   ...
 }:
 machineTest (
   { config, ... }:
   {
-    imports = [ flakes.self.nixosModules.default ];
+    imports = [ nnf.nixosModules.default ];
 
     networking.nftables.chains = {
       input.a.rules = [

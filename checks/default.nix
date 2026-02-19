@@ -2,7 +2,7 @@ system:
 flakes@{ nixpkgs, ... }:
 let
   lib = nixpkgs.lib.extend (import ./utils.nix system nixpkgs) // {
-    inherit flakes;
+    nnf = import ../default.nix flakes;
   };
 in
 with lib;
