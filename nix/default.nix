@@ -27,19 +27,4 @@ inputs: {
     };
 
   checks.x86_64-linux = import ../checks "x86_64-linux" inputs;
-
-  packages =
-    with inputs.nixpkgs.lib;
-    genAttrs systems.flakeExposed (
-      system:
-      let
-        pkgs = import inputs.nixpkgs {
-          inherit system;
-          overlays = [ (import ../docs inputs) ];
-        };
-      in
-      {
-        docs = pkgs.nixos-nftables-firewall-docs;
-      }
-    );
 }

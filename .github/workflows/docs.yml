@@ -26,7 +26,7 @@ jobs:
         uses: actions/configure-pages@v5
 
       - uses: cachix/install-nix-action@v31
-      - run: nix --print-build-logs build .#docs -o result
+      - run: nix --print-build-logs build ./dev-flake#docs -o result
 
       - name: Copy the build result out of the nix store
         run: cp --no-preserve=ownership --dereference -r result _site; chmod -R +w _site
