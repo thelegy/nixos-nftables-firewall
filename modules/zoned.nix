@@ -1,11 +1,13 @@
-flakes@{ dependencyDagOfSubmodule, ... }:
+inputs:
 {
   config,
   lib,
   ...
 }:
-with dependencyDagOfSubmodule.lib.bake lib;
+with lib;
 let
+  dependencyDagOfSubmodule = inputs.dependencyDagOfSubmodule.lib lib;
+
   cfg = config.networking.nftables.firewall;
   ruleTypes = [
     "ban"
@@ -15,7 +17,7 @@ let
 in
 {
   imports = [
-    flakes.self.nixosModules.chains
+    inputs.self.nixosModules.chains
   ];
 
   options.networking.nftables.firewall = {
@@ -33,7 +35,7 @@ in
     };
 
     zones = mkOption {
-      type = types.dependencyDagOfSubmodule (
+      type = dependencyDagOfSubmodule.type (
         {
           name,
           config,
@@ -184,7 +186,7 @@ in
         };
       in
       mkOption {
-        type = types.dependencyDagOfSubmodule (
+        type = dependencyDagOfSubmodule.type (
           {
             name,
             config,
@@ -319,7 +321,7 @@ in
         "traverse-from-${zoneSpec from matchFromSubzones}-to-${zoneSpec to matchToSubzones}-${ruleType}";
 
       zones = filterAttrs (_: zone: zone.enable) cfg.zones;
-      sortedZones = types.dependencyDagOfSubmodule.toOrderedList cfg.zones;
+      sortedZones = dependencyDagOfSubmodule.toOrderedList cfg.zones;
 
       allZone = {
         name = "all";
@@ -338,7 +340,7 @@ in
       localZone = head (filter (x: x.localZone) sortedZones);
 
       rules = pipe cfg.rules [
-        types.dependencyDagOfSubmodule.toOrderedList
+        dependencyDagOfSubmodule.toOrderedList
       ];
 
       perRule =

@@ -1,15 +1,17 @@
-flakes@{ dependencyDagOfSubmodule, ... }:
+inputs:
 {
   lib,
   config,
   ...
 }:
-with dependencyDagOfSubmodule.lib.bake lib;
+with lib;
 let
+  dependencyDagOfSubmodule = inputs.dependencyDagOfSubmodule.lib lib;
+
   chains = mapAttrs (
     _: x:
     pipe x [
-      types.dependencyDagOfSubmodule.toOrderedList
+      dependencyDagOfSubmodule.toOrderedList
       (concatMap (y: y.rules))
     ]
   ) config.networking.nftables.chains;
@@ -124,7 +126,7 @@ let
   ruleFromStr = text: { inherit text; };
   ruleType = with types; coercedTo str ruleFromStr ruleModule;
 
-  chainType = types.dependencyDagOfSubmodule {
+  chainType = dependencyDagOfSubmodule.type {
     options = {
       rules = mkOption {
         type = types.listOf ruleType;
@@ -135,7 +137,7 @@ let
 in
 {
   imports = [
-    flakes.self.nixosModules.nftables
+    inputs.self.nixosModules.nftables
   ];
 
   options = {
