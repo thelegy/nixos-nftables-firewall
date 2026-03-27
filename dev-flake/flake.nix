@@ -21,6 +21,13 @@
       };
     };
     import-tree.url = "github:vic/import-tree";
+    nix-unit = {
+      url = "github:nix-community/nix-unit";
+      inputs = {
+        flake-parts.follows = "flake-parts";
+        nixpkgs.follows = "nixpkgs";
+      };
+    };
     nixpkgs.url = "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.xz";
     nixpkgs-lib.follows = "nixpkgs";
     nnf.url = "github:input-output-hk/empty-flake";

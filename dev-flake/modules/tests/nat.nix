@@ -1,0 +1,71 @@
+{ nnf-test-utils, nnf, ... }:
+{
+  flake.tests."nat rules" = nnf-test-utils.mkTest (
+    { config, ... }:
+    {
+      imports = [ nnf.nixosModules.default ];
+
+      networking.nftables.firewall = {
+        enable = true;
+        snippets.nnf-common.enable = true;
+        zones.a.interfaces = [ "a" ];
+        zones.b.interfaces = [ "b" ];
+
+        rules.nat = {
+          from = [ "a" ];
+          to = [ "b" ];
+          masquerade = true;
+        };
+      };
+
+      output = {
+        expr = config.networking.nftables.ruleset;
+        expected = ''
+          table inet firewall {
+
+            chain forward {
+              type filter hook forward priority 0; policy drop;
+              ct state {established, related} accept  # inlined: conntrack
+              ct state invalid drop
+              counter drop
+            }
+
+            chain input {
+              type filter hook input priority 0; policy drop
+              iifname { lo } accept
+              ct state {established, related} accept  # inlined: conntrack
+              ct state invalid drop
+              jump traverse-from-all-zone-to-fw-zone-rule
+              counter drop
+            }
+
+            chain postrouting {
+              type nat hook postrouting priority srcnat;
+              meta protocol ip iifname { a } oifname { b } masquerade random
+            }
+
+            chain prerouting {
+              type nat hook prerouting priority dstnat;
+            }
+
+            chain rule-dhcpv6 {
+              ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp dport 546 accept
+            }
+
+            chain rule-icmp {
+              ip6 nexthdr icmpv6 icmpv6 type { echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
+              ip protocol icmp icmp type { echo-request, router-advertisement } accept
+            }
+
+            chain traverse-from-all-zone-to-fw-zone-rule {
+              tcp dport { 22 } accept  # inlined: rule-ssh
+              jump rule-dhcpv6
+              jump rule-icmp
+            }
+
+          }
+        '';
+      };
+    }
+  );
+}
