@@ -4,7 +4,7 @@
   perSystem =
     { pkgs, ... }:
     {
-      packages.docs = pkgs.callPackage ../../docs/default.nix { inherit nnf; };
+      packages.docs = pkgs.callPackage "${nnf}/docs" { inherit nnf; };
     };
 
 }

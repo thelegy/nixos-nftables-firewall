@@ -14,4 +14,11 @@ inputs: {
 
       default = snippets;
     };
+
+  inherit (inputs.dev)
+    checks
+    devShells
+    formatter
+    packages
+    ;
 }

@@ -4,7 +4,7 @@
   perSystem =
     { system, ... }:
     {
-      checks = import ../../checks system inputs nnf;
+      checks = import "${nnf}/checks" system inputs nnf;
     };
 
 }

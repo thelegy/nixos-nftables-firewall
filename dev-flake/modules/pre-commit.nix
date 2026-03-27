@@ -4,8 +4,9 @@
     (inputs.git-hooks-nix.flakeModule or { })
   ];
 
-  flake-file.inputs.git-hooks-nix.url = "github:cachix/git-hooks.nix";
+  flake-file.inputs.git-hooks-nix.inputs.flake-compat.follows = "flake-compat";
   flake-file.inputs.git-hooks-nix.inputs.nixpkgs.follows = "nixpkgs";
+  flake-file.inputs.git-hooks-nix.url = "github:cachix/git-hooks.nix";
 
   perSystem =
     { config, pkgs, ... }:
