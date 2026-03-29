@@ -18,7 +18,20 @@ let
     inherit nnf self;
   };
 
-  outputs = inputs.flake-parts.lib.mkFlake { inherit inputs; } (inputs.import-tree ./modules);
+  lib = inputs.nixpkgs.lib;
+
+  flakeOutputs = inputs.flake-parts.lib.mkFlake { inherit inputs; } (inputs.import-tree ./modules);
+
+  outputs = flakeOutputs // {
+    packages = lib.mapAttrs (
+      _: systemPackages:
+      lib.removeAttrs systemPackages [
+        "write-flake"
+        "write-inputs"
+        "write-lock"
+      ]
+    ) flakeOutputs.packages;
+  };
 
   self = outputs // {
     inherit inputs outputs;
