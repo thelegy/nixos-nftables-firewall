@@ -1,0 +1,19 @@
+name: Perform flake checks
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: nixbuild/nix-quick-install-action@v34
+
+      - run: nix --print-build-logs flake check
