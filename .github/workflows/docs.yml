@@ -25,7 +25,7 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - uses: cachix/install-nix-action@v31
+      - uses: nixbuild/nix-quick-install-action@v34
       - run: nix --print-build-logs build .#docs -o result
 
       - name: Copy the build result out of the nix store
