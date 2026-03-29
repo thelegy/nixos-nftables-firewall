@@ -49,7 +49,12 @@ in
 
   imports = [ (inputs.nix-unit.modules.flake.default or { }) ];
 
-  perSystem.nix-unit = {
-    inherit inputs;
-  };
+  perSystem =
+    { inputs', ... }:
+    {
+      nix-unit = {
+        inherit inputs;
+        package = inputs'.nixpkgs.legacyPackages.nix-unit;
+      };
+    };
 }
