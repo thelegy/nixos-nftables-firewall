@@ -8,7 +8,7 @@ let
     __toString = self: self.outPath;
     inherit inputs outputs;
   };
-  inputs.dev = import ./dev-flake inputs.self;
+  inputs.dev = import ./dev inputs.self;
 
 in
 outputs
