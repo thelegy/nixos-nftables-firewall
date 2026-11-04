@@ -143,6 +143,10 @@ in
           config = with config; {
             assertions = flatten [
               {
+                assertion = name != "all";
+                message = ''Zone name "all" is reserved and cannot be used in `networking.nftables.firewall.zones`.'';
+              }
+              {
                 assertion = length ingressExpression == length egressExpression;
                 message = "You need to specify the same number of ingress and egress expressions";
               }
@@ -280,6 +284,10 @@ in
               in
               {
                 assertions = flatten [
+                  (forEach [ "from" "to" ] (direction: {
+                    assertion = !(isList config.${direction} && elem "all" config.${direction});
+                    message = ''`networking.nftables.firewall.rules."${name}".${direction}` must not contain "all" in a list. Use `${direction} = "all";` instead.'';
+                  }))
                   {
                     assertion =
                       config.ignoreEmptyRule
