@@ -1,5 +1,5 @@
 ---
-import { Code } from 'astro:components';
+import CodeBlock from './CodeBlock.astro';
 import { marked } from 'marked';
 import { getOptions, optionId, optionLabel } from '../lib/options';
 import type { OptionValue } from '../lib/options';
@@ -60,7 +60,7 @@ const valueText = (value: OptionValue) => value.text;
                 ? <div set:html={markdown(valueText(value))} />
                 : !value.text.includes('\n') && value.text.length <= 80
                   ? <code>{valueText(value)}</code>
-                  : <Code code={valueText(value)} lang="nix" />}
+                  : <CodeBlock code={valueText(value)} />}
             </td>
           </tr>;
         })}

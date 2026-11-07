@@ -1,0 +1,156 @@
+---
+/*
+ * Adapted from shadcn/ui CodeBlock for Astro (no React runtime).
+ * https://ui.shadcn.com/r/styles/radix-nova/code-block.json
+ * Copyright (c) 2023 shadcn — MIT; see public/licenses/shadcn-ui.txt.
+ */
+import { Code } from 'astro:components';
+
+interface Props { code: string }
+const { code } = Astro.props;
+---
+
+<div class="nnf-code-block not-content" data-slot="code-block" data-wrap="true">
+  <div class="code-header" data-slot="code-block-header">
+    <span>Nix</span>
+    <div class="code-actions" data-slot="code-block-actions">
+      <button type="button" data-code-wrap aria-label="Wrap lines" aria-pressed="true" title="Toggle line wrapping">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <path d="M3 6h18M3 12h12a4 4 0 0 1 0 8h-4m3-3-3 3 3 3M3 18h3" />
+        </svg>
+      </button>
+      <button type="button" data-code-copy aria-label="Copy code" title="Copy code">
+        <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <rect x="8" y="8" width="12" height="12" rx="2" />
+          <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+        </svg>
+        <svg class="copied-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="m5 12 4 4L19 6" />
+        </svg>
+      </button>
+    </div>
+  </div>
+  <Code code={code} lang="nix" themes={{ light: 'github-light', dark: 'github-dark' }} defaultColor={false} transformers={[{
+    line(node, line) { node.properties['data-line'] = line; },
+  }]} wrap={null} tabindex="0" aria-label="Nix code" />
+  <span class="sr-only" role="status"></span>
+</div>
+
+<script>
+  document.addEventListener('click', async (event) => {
+    if (!(event.target instanceof Element)) return;
+    const button = event.target.closest<HTMLButtonElement>('[data-code-wrap], [data-code-copy]');
+    const block = button?.closest<HTMLElement>('.nnf-code-block');
+    if (!button || !block) return;
+    if (button.hasAttribute('data-code-wrap')) {
+      const wrap = block.dataset.wrap !== 'true';
+      block.dataset.wrap = String(wrap);
+      button.setAttribute('aria-pressed', String(wrap));
+      return;
+    }
+    const status = block.querySelector('[role="status"]')!;
+    try {
+      await navigator.clipboard.writeText(block.querySelector('pre code')!.textContent ?? '');
+      button.dataset.copied = 'true';
+      button.setAttribute('aria-label', 'Copied');
+      button.title = 'Copied';
+      status.textContent = 'Code copied';
+    } catch {
+      status.textContent = 'Could not copy code';
+      button.title = 'Copy failed';
+    }
+    setTimeout(() => {
+      delete button.dataset.copied;
+      button.setAttribute('aria-label', 'Copy code');
+      button.title = 'Copy code';
+      status.textContent = '';
+    }, 2000);
+  });
+</script>
+
+<style>
+  .nnf-code-block {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: .5rem;
+    background: var(--sl-color-bg-inline-code);
+    font-size: .8rem;
+  }
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .25rem .375rem .1rem .75rem;
+    color: var(--sl-color-gray-2);
+    font: 500 .75rem var(--sl-font);
+  }
+  .code-actions { display: flex; gap: .125rem; }
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: .25rem;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+  }
+  button:hover, button[aria-pressed="true"] { background: var(--sl-color-gray-5); }
+  :is(button, .nnf-code-block :global(pre)):focus-visible {
+    outline: 2px solid var(--sl-color-text-accent);
+    outline-offset: -2px;
+  }
+  .nnf-code-block :global(pre.astro-code) {
+    margin: 0;
+    padding: .35rem .75rem .75rem;
+    border: 0;
+    background: transparent;
+    color: var(--shiki-light);
+    font-size: inherit;
+    line-height: 1.6;
+    overflow: auto;
+    max-width: 100%;
+    white-space: pre;
+    overflow-wrap: normal;
+  }
+  .nnf-code-block :global(pre code) {
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    font-size: inherit;
+    white-space: inherit;
+    overflow-wrap: inherit;
+  }
+  .nnf-code-block :global(pre span) { color: var(--shiki-light); }
+  .nnf-code-block :global(.line) {
+    display: inline-block;
+    position: relative;
+    min-width: 100%;
+    padding-inline-start: 3.5ch;
+    box-sizing: border-box;
+  }
+  .nnf-code-block :global(.line::before) {
+    content: attr(data-line);
+    position: absolute;
+    inset-inline-start: 0;
+    width: 2.5ch;
+    text-align: end;
+    color: var(--sl-color-gray-3);
+    user-select: none;
+    pointer-events: none;
+  }
+  :global([data-theme="dark"]) .nnf-code-block :global(pre),
+  :global([data-theme="dark"]) .nnf-code-block :global(pre span) { color: var(--shiki-dark); }
+  .nnf-code-block[data-wrap="true"] :global(pre.astro-code) {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .copied-icon { display: none; }
+  [data-copied] .copy-icon { display: none; }
+  [data-copied] .copied-icon { display: block; }
+</style>
