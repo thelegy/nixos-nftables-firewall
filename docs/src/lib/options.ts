@@ -32,19 +32,20 @@ export function getOptions(): Promise<Option[]> {
 export const optionId = (name: string) => name.toLowerCase().replaceAll('.', '-').replace(/[<>*]/g, '');
 
 // Abbreviate the firewall namespace and the shared Chains collection path.
-// Submodule pages can additionally
-// omit their shared group path, but keep <name> and all nested fields visible.
+// Submodule selectors can include <name>; labels retain those placeholders
+// and nested fields while omitting the shared collection path.
 export function optionLabel(name: string, prefix: string): string {
+  const groupPrefix = prefix.replace(/(?:\.<name>)+$/, '');
   const namespace = 'networking.nftables.firewall.';
-  if (prefix === 'networking.nftables.chains') {
-    return name === prefix ? '...chains' : '...' + name.slice(prefix.length + 1);
+  if (groupPrefix === 'networking.nftables.chains') {
+    return name === groupPrefix ? '...chains' : '...' + name.slice(groupPrefix.length + 1);
   }
   const snippets = namespace + 'snippets.';
   if (name.startsWith(snippets)) return '...' + name.slice(snippets.length);
   if (!name.startsWith(namespace)) return name;
-  const submodulePrefix = prefix + '.<name>.';
+  const submodulePrefix = groupPrefix + '.<name>.';
   const relative = name.startsWith(submodulePrefix)
-    ? name.slice(prefix.length + 1)
+    ? name.slice(groupPrefix.length + 1)
     : name.slice(namespace.length);
   return '...' + relative;
 }
