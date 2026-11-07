@@ -42,9 +42,14 @@
 }
 .option-sources a {
   color: var(--sl-color-gray-2);
-  text-decoration-color: var(--sl-color-gray-4);
+  text-decoration: none;
 }
 .option-sources a:hover { color: var(--sl-color-text-accent); }
+.option-sources .source-link-icon {
+  display: inline-block;
+  vertical-align: -.1em;
+  margin-inline-start: .2rem;
+}
 @media (max-width: 30rem) {
   .option-metadata .option-label-column { width: 6rem; }
 }
