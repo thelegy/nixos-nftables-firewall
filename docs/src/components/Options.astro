@@ -1,0 +1,41 @@
+---
+import { Code } from 'astro:components';
+import { marked } from 'marked';
+import { getOptions, optionId } from '../lib/options';
+import type { OptionValue } from '../lib/options';
+
+interface Props { prefix: string }
+const { prefix } = Astro.props;
+const options = (await getOptions()).filter(({ name }) => name === prefix || name.startsWith(prefix + '.'));
+if (!options.length) throw new Error(`No Nix options matched "${prefix}".`);
+const markdown = (text: string) => marked.parse(
+  text.replaceAll('<literal>', '`').replaceAll('</literal>', '`'),
+  { async: false },
+);
+const valueText = (value: OptionValue) => value.text;
+---
+
+{options.map((option) => (
+  <section class="nix-option">
+    <h3 id={optionId(option.name)}><a href={`#${optionId(option.name)}`}>{option.name}</a></h3>
+    <div class="nixopt">
+      <div class="fieldname">Description</div>
+      {option.description ? <div set:html={markdown(option.description)} /> : <p>No description provided.</p>}
+      <div class="fieldname">Type</div>
+      <Code code={option.type} lang="text" />
+      {(['default', 'example'] as const).map((field) => {
+        const value = option[field];
+        return value && <>
+          <div class="fieldname">{field === 'default' ? 'Default' : 'Example'}</div>
+          {value._type === 'literalMD'
+            ? <div set:html={markdown(valueText(value))} />
+            : <Code code={valueText(value)} lang="nix" />}
+        </>;
+      })}
+      <div class="fieldname">Declared in</div>
+      <ul>{option.declarations.map((path) => (
+        <li><a href={`https://github.com/thelegy/nixos-nftables-firewall/blob/main/${path}`}>{path}</a></li>
+      ))}</ul>
+    </div>
+  </section>
+))}

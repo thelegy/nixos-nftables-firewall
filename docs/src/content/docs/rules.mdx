@@ -1,6 +1,9 @@
 ---
 title: Rules
 ---
+
+import Options from '../../components/Options.astro';
+
 Rules define what should happen with the trafiic matched by the zones.
 Each rule has a list of `from` zones and `to` zones.
 A rule only gets applied, if the traffic in question originated in one of the `from` zones and is heading to one of the `to` zones.
@@ -13,4 +16,4 @@ Each `rule` has a `ruleType`.
 Rules are gruped by their type and applied in these groups, so that all rules are applied for the first type, before rules of the next type are taken into consideration.
 
 ## Options
-%networking.nftables.firewall.rules%
+<Options prefix="networking.nftables.firewall.rules" />

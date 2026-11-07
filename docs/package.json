@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": { "build": "astro build" },
+  "scripts": {
+    "build": "astro build",
+    "dev": "astro dev",
+    "preview": "astro preview"
+  },
   "dependencies": {
     "@astrojs/starlight": "0.42.10",
     "astro": "7.3.8",
-    "sharp": "0.35.5"
+    "sharp": "0.35.5",
+    "marked": "17.0.1"
   }
 }
