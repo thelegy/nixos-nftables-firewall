@@ -31,10 +31,16 @@ export function getOptions(): Promise<Option[]> {
 }
 export const optionId = (name: string) => name.toLowerCase().replaceAll('.', '-').replace(/[<>*]/g, '');
 
-// Only abbreviate the firewall namespace. Submodule pages can additionally
+// Abbreviate the firewall namespace and the shared Chains collection path.
+// Submodule pages can additionally
 // omit their shared group path, but keep <name> and all nested fields visible.
 export function optionLabel(name: string, prefix: string): string {
   const namespace = 'networking.nftables.firewall.';
+  if (prefix === 'networking.nftables.chains') {
+    return name === prefix ? '...chains' : '...' + name.slice(prefix.length + 1);
+  }
+  const snippets = namespace + 'snippets.';
+  if (name.startsWith(snippets)) return '...' + name.slice(snippets.length);
   if (!name.startsWith(namespace)) return name;
   const submodulePrefix = prefix + '.<name>.';
   const relative = name.startsWith(submodulePrefix)
