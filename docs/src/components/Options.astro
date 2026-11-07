@@ -124,7 +124,7 @@ const valueText = (value: OptionValue) => value.text;
   .option-path {
     margin: 0;
     font-size: .8rem;
-    line-height: 1.8;
+    line-height: inherit;
   }
   .option-path code {
     padding: 0;
@@ -137,11 +137,12 @@ const valueText = (value: OptionValue) => value.text;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    vertical-align: middle;
-    width: 2rem;
-    height: 2rem;
+    position: relative;
+    vertical-align: -.25rem;
+    width: 1.5rem;
+    height: 1.25rem;
     margin: 0 0 0 .2rem;
-    padding: .5rem;
+    padding: 0;
     border: 0;
     border-radius: .35rem;
     background: transparent;
@@ -149,6 +150,12 @@ const valueText = (value: OptionValue) => value.text;
     font: inherit;
     font-size: .75rem;
     cursor: pointer;
+  }
+  /* Expand the hit area without making the table's line box taller. */
+  .option-path button::after {
+    content: '';
+    position: absolute;
+    inset: -.25rem 0;
   }
   .option-path button:hover { background: var(--sl-color-gray-6); }
   .copied-icon { display: none; }
