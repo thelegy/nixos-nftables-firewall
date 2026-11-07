@@ -2,22 +2,10 @@
 title: Quickstart guide
 ---
 
-## Installation of the module
-To use the firewall you first need to load the module.
-Currently only nix flakes are supported, though adding support for the traditional way should not be too difficult.
+import CodeBlock from '../../components/CodeBlock.astro';
 
-:::note
-Currently almost all of what this module does needs to be enabled first, but there is one thing, the module will do by just including it:
-
-The module changes adds the [stopRuleset](../common/#networking-nftables-stopruleset) Option, that is required.
-It will change the undelying `nftables` service, to apply this ruleset in case, that the service is stopped, or the real ruleset fails to apply.
-
-If you forget to define it, nix will complain, when you try to build your machine.
-:::
-
-Loading the module might depend on how you construct your machines configuration, but probably something along the following lines will do the trick:
-```
-{
+export const examples = [
+`{
   inputs.nnf.url = "github:thelegy/nixos-nftables-firewall";
 
   ...
@@ -32,8 +20,82 @@ Loading the module might depend on how you construct your machines configuration
     };
     ...,
   };
-}
-```
+}`,
+`{config, ...}: {
+  ...
+
+  networking.nftables.firewall = {
+    enable = true;
+    snippets.nnf-common.enable = true;`,
+`    zones.uplink = {
+      interfaces = [ "eth0" "eth1" ];
+    };
+    zones.local = {
+      parent = "uplink";
+      ipv4Addresses = [ "192.168.1.0/24" ];
+    };`,
+`    zones.banned = {
+      ingressExpression = [
+        "ip saddr @banlist"
+        "ip6 saddr @banlist6"
+      ];
+      egressExpression = [
+        "ip daddr @banlist"
+        "ip6 daddr @banlist6"
+      ];
+    };`,
+`    rules.http = {
+      from = "all";
+      to = [ "fw" ];
+      allowedTCPPorts = [ 80 443 ];
+    };`,
+`    rules.mqtt = {
+      from = [ "local" ];
+      to = [ "fw" ];
+      allowedTCPPorts = [ 1883 ];
+    };`,
+`    zones.private = {
+      interfaces = [ "eth3" ];
+    };
+    rules.private-ssh = {
+      from = "all";
+      to = [ "private" ];
+      allowedTCPPorts = [ 22 ];
+    };
+    rules.private-outgoing = {
+      from = [ "private" ];
+      to = [ "uplink" ];
+      verdict = "accept";
+    };`,
+`    rules.ban = {
+      from = ["banned"];
+      to = "all";
+      ruleType = "ban";
+      extraLines = [
+        "counter drop"
+      ];
+    };`,
+`  };
+}`
+];
+
+
+
+## Installation of the module
+To use the firewall you first need to load the module.
+Currently only nix flakes are supported, though adding support for the traditional way should not be too difficult.
+
+:::note
+Currently almost all of what this module does needs to be enabled first, but there is one thing, the module will do by just including it:
+
+The module changes adds the [stopRuleset](../common/#networking-nftables-stopruleset) Option, that is required.
+It will change the undelying `nftables` service, to apply this ruleset in case, that the service is stopped, or the real ruleset fails to apply.
+
+If you forget to define it, nix will complain, when you try to build your machine.
+:::
+
+Loading the module might depend on how you construct your machines configuration, but probably something along the following lines will do the trick:
+<CodeBlock lang="nix" code={examples[0]} />
 
 ## Using the module
 We will start using [snippets](../snippets/).
@@ -42,27 +104,12 @@ I encourage you to read through what the snippets do, you use and maybe even to 
 For now we will just use them.
 
 We will look at the following `configuration.nix`.
-```
-{config, ...}: {
-  ...
-
-  networking.nftables.firewall = {
-    enable = true;
-    snippets.nnf-common.enable = true;
-```
+<CodeBlock lang="nix" code={examples[1]} />
 This will enable the firewall and also the `nnf-common` snippet.
 
 ### Zones
 Next we will add some [zones](../zones/):
-```
-    zones.uplink = {
-      interfaces = [ "eth0" "eth1" ];
-    };
-    zones.local = {
-      parent = "uplink";
-      ipv4Addresses = [ "192.168.1.0/24" ];
-    };
-```
+<CodeBlock lang="nix" code={examples[2]} />
 This will define the two zones `uplink` and `local`.
 
 The `uplink` zone is defined by the interfaces `eth0` and `eth1`.
@@ -75,63 +122,26 @@ You can unserstand that as "my communication partner already belongs to the `upl
 
 This is often all the complxity you need, but you can also do things more manually to fit your needs:
 
-```
-    zones.banned = {
-      ingressExpression = [
-        "ip saddr @banlist"
-        "ip6 saddr @banlist6"
-      ];
-      egressExpression = [
-        "ip daddr @banlist"
-        "ip6 daddr @banlist6"
-      ];
-    };
-```
+<CodeBlock lang="nix" code={examples[3]} />
 With this example a `banned` zone is defined by manually specifying how traffic should be matched.
 In this case we assume, that some nftables sets `banlist` and `banlist6` are defined and the zone matches traffic with a cummunication partner, that has a banned ip.
 
 ### Rules
 Next we will add some [rules](../rules/):
-```
-    rules.http = {
-      from = "all";
-      to = [ "fw" ];
-      allowedTCPPorts = [ 80 443 ];
-    };
-```
+<CodeBlock lang="nix" code={examples[4]} />
 The rule `http` allows TCP traffic to port 80 and 443 from anywhere to the local machine.
 (The `fw` stands for the local machine, it is short for "firewall", you can change it at the [localZoneName](../common/#networking-nftables-firewall-localzonename) option).
 
 This has the same effect as `networking.firewall.allowedTCPPorts = [80 443];`.
 Depending on which snippets you have enabled ([nnf-nixos-firewall](../snippets/#nnf-nixos-firewall) is responsible, which is included by [nnf-common](../snippets/#nnf-common), which we have enabled), that will actually still work.
 
-```
-    rules.mqtt = {
-      from = [ "local" ];
-      to = [ "fw" ];
-      allowedTCPPorts = [ 1883 ];
-    };
-```
+<CodeBlock lang="nix" code={examples[5]} />
 The rule `mqtt` allows TCP traffic to port 1883 from the `local` zone to the local machine.
 Here [from](../rules/#networking-nftables-firewall-rules-name-from) is defined as a list of zones insted of the `"all"` string earlier.
 Usually it is a list of zone names, but instead it can be this special value, that we have seen previous.
 The same is actually possible for the [to](../rules/#networking-nftables-firewall-rules-name-to).
 
-```
-    zones.private = {
-      interfaces = [ "eth3" ];
-    };
-    rules.private-ssh = {
-      from = "all";
-      to = [ "private" ];
-      allowedTCPPorts = [ 22 ];
-    };
-    rules.private-outgoing = {
-      from = [ "private" ];
-      to = [ "uplink" ];
-      verdict = "accept";
-    };
-```
+<CodeBlock lang="nix" code={examples[6]} />
 Now we define another zone `private` via the interface `eth3`.
 The rule `private-ssh` allows traffic from anywhere to reach TCP port 22 in zone `private`.
 So this will actually generate our first "forward" rule.
@@ -144,16 +154,7 @@ This can be achieved by including multiple zones in the `to` field, some being s
 
 Currently this firewall does not generate nft rules for the "output" chain, so limiting outgoing traffic from the local mache is not possible yet.
 
-```
-    rules.ban = {
-      from = ["banned"];
-      to = "all";
-      ruleType = "ban";
-      extraLines = [
-        "counter drop"
-      ];
-    };
-```
+<CodeBlock lang="nix" code={examples[7]} />
 The rule `ban` is a more advanced example.
 It drops any draffic, that is originated in the `banned` zone.
 It also adds a counter, so we can inspect how much traffic and packets were actually dropped by it.
@@ -166,7 +167,4 @@ For this there is the [ruleType](../rules/#networking-nftables-firewall-rules-na
 The actually verdict is not supplied as a `verdict = "drop"` here, but as [extraLines](../rules/#networking-nftables-firewall-rules-name-extralines).
 With it you can supply raw nft rules, that are applied to all traffic the rule affects.
 
-```
-  };
-}
-```
+<CodeBlock lang="nix" code={examples[8]} />

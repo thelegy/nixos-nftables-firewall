@@ -6,6 +6,27 @@ prev: false
 next: false
 ---
 
+import CodeBlock from '../../components/CodeBlock.astro';
+
+export const examples = [
+`{
+  networking.nftables.firewall = {
+    enable = true;
+    snippets.nnf-common.enable = true;
+
+    zones.uplink.interfaces = [ "eth0" ];
+
+    rules.web = {
+      from = [ "uplink" ];
+      to = [ "fw" ];
+      allowedTCPPorts = [ 80 443 ];
+    };
+  };
+}`
+];
+
+
+
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
 Describe your network with **zones**, then use declarative rules to control
@@ -22,22 +43,7 @@ Once you have [imported the module](./quickstart/#installation-of-the-module),
 a configuration like this allows HTTP and HTTPS from `uplink` to the local
 machine, represented by the built-in `fw` zone:
 
-```nix title="configuration.nix"
-{
-  networking.nftables.firewall = {
-    enable = true;
-    snippets.nnf-common.enable = true;
-
-    zones.uplink.interfaces = [ "eth0" ];
-
-    rules.web = {
-      from = [ "uplink" ];
-      to = [ "fw" ];
-      allowedTCPPorts = [ 80 443 ];
-    };
-  };
-}
-```
+<CodeBlock lang="nix" title="configuration.nix" code={examples[0]} />
 
 Replace `eth0` with your network interface. The `nnf-common` snippet also enables
 baseline policies including SSH, loopback traffic, and connection tracking.
