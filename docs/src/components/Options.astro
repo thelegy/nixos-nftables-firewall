@@ -1,7 +1,7 @@
 ---
 import { Code } from 'astro:components';
 import { marked } from 'marked';
-import { getOptions, optionId } from '../lib/options';
+import { getOptions, optionId, optionLabel } from '../lib/options';
 import type { OptionValue } from '../lib/options';
 
 interface Props { prefix: string }
@@ -17,7 +17,16 @@ const valueText = (value: OptionValue) => value.text;
 
 {options.map((option) => (
   <section class="nix-option">
-    <h3 id={optionId(option.name)}><a href={`#${optionId(option.name)}`}>{option.name}</a></h3>
+    <div class="option-heading">
+      <h3 id={optionId(option.name)}>{optionLabel(option.name, prefix)}</h3>
+      <a class="option-permalink" href={`#${optionId(option.name)}`} aria-label={`Permalink to ${option.name}`}>#</a>
+    </div>
+    <div class="option-path">
+      <code>{option.name}</code>
+      <button type="button" data-copy-option={option.name} aria-label={`Copy option path ${option.name}`}>
+        <span aria-live="polite">Copy path</span>
+      </button>
+    </div>
     <div class="nixopt">
       <div class="fieldname">Description</div>
       {option.description ? <div set:html={markdown(option.description)} /> : <p>No description provided.</p>}
@@ -39,3 +48,75 @@ const valueText = (value: OptionValue) => value.text;
     </div>
   </section>
 ))}
+
+
+<script>
+  document.addEventListener('click', async (event) => {
+    const button = event.target instanceof Element
+      ? event.target.closest<HTMLButtonElement>('button[data-copy-option]')
+      : null;
+    if (!button) return;
+    const label = button.querySelector('span')!;
+    try {
+      await navigator.clipboard.writeText(button.dataset.copyOption!);
+      label.textContent = 'Copied!';
+    } catch {
+      label.textContent = 'Copy failed';
+    }
+    setTimeout(() => { label.textContent = 'Copy path'; }, 2000);
+  });
+</script>
+
+<style>
+  .nix-option {
+    margin-block: 1.5rem 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--sl-color-gray-5);
+  }
+  .option-heading {
+    display: flex;
+    align-items: baseline;
+    gap: .65rem;
+  }
+  .option-heading h3 {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .option-permalink {
+    color: var(--sl-color-gray-3);
+    text-decoration: none;
+    font-size: 1rem;
+  }
+  .option-permalink:hover { color: var(--sl-color-text-accent); }
+  .option-path {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: .5rem 1rem;
+    margin-top: .4rem;
+  }
+  .option-path code {
+    flex: 1 1 16rem;
+    padding: 0;
+    color: var(--sl-color-gray-2);
+    background: none;
+    font-size: .8rem;
+    overflow-wrap: anywhere;
+  }
+  .option-path button {
+    margin: 0;
+    padding: .3rem .55rem;
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: .35rem;
+    background: var(--sl-color-bg);
+    color: var(--sl-color-text);
+    font: inherit;
+    font-size: .75rem;
+    cursor: pointer;
+  }
+  .option-path button:hover { background: var(--sl-color-gray-6); }
+  :is(.option-path button, .option-permalink):focus-visible {
+    outline: 2px solid var(--sl-color-text-accent);
+    outline-offset: 3px;
+  }
+</style>

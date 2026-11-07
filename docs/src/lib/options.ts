@@ -30,3 +30,11 @@ export function getOptions(): Promise<Option[]> {
   )));
 }
 export const optionId = (name: string) => name.toLowerCase().replaceAll('.', '-').replace(/[<>*]/g, '');
+
+// Keep labels local to the option group, while preserving full paths and IDs.
+export function optionLabel(name: string, prefix: string): string {
+  if (name.startsWith(prefix + '.')) {
+    return name.slice(prefix.length + 1).replace(/^<name>\./, '');
+  }
+  return name.replace(/^networking\.nftables\.(firewall\.)?/, '');
+}
