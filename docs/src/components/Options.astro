@@ -49,7 +49,7 @@ const valueText = (value: OptionValue) => value.text;
         </tr>}
         <tr>
           <th scope="row">Type</th>
-          <td><code>{option.type}</code></td>
+          <td>{option.type}</td>
         </tr>
         {(['default', 'example'] as const).map((field) => {
           const value = option[field];
