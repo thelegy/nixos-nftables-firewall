@@ -8,6 +8,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'nixos-nftables-firewall',
+      routeMiddleware: './src/route-middleware.ts',
       description: 'A zone based firewall built on nftables for NixOS.',
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/thelegy/nixos-nftables-firewall' }],
       sidebar: [
