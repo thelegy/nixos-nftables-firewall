@@ -137,6 +137,8 @@ const languageLabel = lang === 'nix' ? 'Nix' : lang;
     display: inline-block;
     position: relative;
     min-width: 100%;
+    min-height: 1lh;
+    vertical-align: top;
     padding-inline-start: 3.5ch;
     box-sizing: border-box;
   }
@@ -144,6 +146,7 @@ const languageLabel = lang === 'nix' ? 'Nix' : lang;
     content: attr(data-line);
     position: absolute;
     inset-inline-start: 0;
+    inset-block-start: 0;
     width: 2.5ch;
     text-align: end;
     color: var(--sl-color-gray-3);
