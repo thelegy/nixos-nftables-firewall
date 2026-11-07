@@ -27,25 +27,39 @@ const valueText = (value: OptionValue) => value.text;
         <span aria-live="polite">Copy path</span>
       </button>
     </div>
-    <div class="nixopt">
-      <div class="fieldname">Description</div>
-      {option.description ? <div set:html={markdown(option.description)} /> : <p>No description provided.</p>}
-      <div class="fieldname">Type</div>
-      <Code code={option.type} lang="text" />
-      {(['default', 'example'] as const).map((field) => {
-        const value = option[field];
-        return value && <>
-          <div class="fieldname">{field === 'default' ? 'Default' : 'Example'}</div>
-          {value._type === 'literalMD'
-            ? <div set:html={markdown(valueText(value))} />
-            : <Code code={valueText(value)} lang="nix" />}
-        </>;
-      })}
-      <div class="fieldname">Declared in</div>
-      <ul>{option.declarations.map((path) => (
-        <li><a href={`https://github.com/thelegy/nixos-nftables-firewall/blob/main/${path}`}>{path}</a></li>
-      ))}</ul>
-    </div>
+    <table class="option-metadata">
+      <caption class="sr-only">Metadata for {option.name}</caption>
+      <colgroup><col class="option-label-column" /><col /></colgroup>
+      <tbody>
+        {option.description && <tr>
+          <th scope="row">Description</th>
+          <td><div set:html={markdown(option.description)} /></td>
+        </tr>}
+        <tr>
+          <th scope="row">Type</th>
+          <td><code>{option.type}</code></td>
+        </tr>
+        {(['default', 'example'] as const).map((field) => {
+          const value = option[field];
+          return value && <tr>
+            <th scope="row">{field === 'default' ? 'Default' : 'Example'}</th>
+            <td>
+              {value._type === 'literalMD'
+                ? <div set:html={markdown(valueText(value))} />
+                : !value.text.includes('\n') && value.text.length <= 80
+                  ? <code>{valueText(value)}</code>
+                  : <Code code={valueText(value)} lang="nix" />}
+            </td>
+          </tr>;
+        })}
+        <tr>
+          <th scope="row">Declared in</th>
+          <td><ul class="option-sources">{option.declarations.map((path) => (
+            <li><a href={`https://github.com/thelegy/nixos-nftables-firewall/blob/main/${path}`}>{path}</a></li>
+          ))}</ul></td>
+        </tr>
+      </tbody>
+    </table>
   </section>
 ))}
 
