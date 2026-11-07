@@ -1,4 +1,6 @@
-# Snippets
+---
+title: Snippets
+---
 
 Snippets are meant as method of definig very high-level options, that may be very opinionated and thus not suited for everybody.
 

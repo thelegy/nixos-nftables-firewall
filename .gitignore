@@ -1,3 +1,7 @@
 result
 .direnv
 .pre-commit-config.yaml
+docs/node_modules/
+docs/dist/
+docs/.astro/
+docs/src/content/docs/

@@ -1,4 +1,6 @@
-# Rules
+---
+title: Rules
+---
 Rules define what should happen with the trafiic matched by the zones.
 Each rule has a list of `from` zones and `to` zones.
 A rule only gets applied, if the traffic in question originated in one of the `from` zones and is heading to one of the `to` zones.

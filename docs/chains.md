@@ -1,4 +1,6 @@
-# Chains
+---
+title: Chains
+---
 
 ## Options
 
