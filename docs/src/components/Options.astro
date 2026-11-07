@@ -21,23 +21,28 @@ const valueText = (value: OptionValue) => value.text;
       <h3 id={optionId(option.name)}>{optionLabel(option.name, prefix)}</h3>
       <a class="option-permalink" href={`#${optionId(option.name)}`} aria-label={`Permalink to ${option.name}`}>#</a>
     </div>
-    <div class="option-path">
-      <code>{option.name}</code>
-      <button type="button" data-copy-option={option.name} aria-label={`Copy option path ${option.name}`} title="Copy path">
-        <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-          <rect x="8" y="8" width="12" height="12" rx="2" />
-          <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
-        </svg>
-        <svg class="copied-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <path d="m5 12 4 4L19 6" />
-        </svg>
-        <span class="sr-only" role="status"></span>
-      </button>
-    </div>
     <table class="option-metadata">
       <caption class="sr-only">Metadata for {option.name}</caption>
       <colgroup><col class="option-label-column" /><col /></colgroup>
       <tbody>
+        <tr>
+          <th scope="row">Name</th>
+          <td>
+            <div class="option-path">
+                  <code>{option.name}</code>
+                  <button type="button" data-copy-option={option.name} aria-label={`Copy option path ${option.name}`} title="Copy path">
+                    <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                      <rect x="8" y="8" width="12" height="12" rx="2" />
+                      <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+                    </svg>
+                    <svg class="copied-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="m5 12 4 4L19 6" />
+                    </svg>
+                    <span class="sr-only" role="status"></span>
+                  </button>
+                </div>
+          </td>
+        </tr>
         {option.description && <tr>
           <th scope="row">Description</th>
           <td><div set:html={markdown(option.description)} /></td>
@@ -117,7 +122,7 @@ const valueText = (value: OptionValue) => value.text;
   }
   .option-permalink:hover { color: var(--sl-color-text-accent); }
   .option-path {
-    margin-top: .4rem;
+    margin: 0;
     font-size: .8rem;
     line-height: 1.8;
   }
