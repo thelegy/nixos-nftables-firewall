@@ -1,0 +1,79 @@
+---
+title: NixOS nftables firewall
+description: Describe your network with zones and control traffic with declarative NixOS rules.
+tableOfContents: false
+prev: false
+next: false
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Describe your network with **zones**, then use declarative rules to control
+traffic between them. These NixOS modules turn that configuration into an
+nftables ruleset.
+
+- **Zones** identify networks or hosts by interface, address, or an nftables expression.
+- **Rules** describe traffic from one zone to another, including allowed ports.
+- **Snippets** provide reusable policies for common needs such as SSH and connection tracking.
+
+## Start with a small configuration
+
+Once you have [imported the module](./quickstart/#installation-of-the-module),
+a configuration like this allows HTTP and HTTPS from `uplink` to the local
+machine, represented by the built-in `fw` zone:
+
+```nix title="configuration.nix"
+{
+  networking.nftables.firewall = {
+    enable = true;
+    snippets.nnf-common.enable = true;
+
+    zones.uplink.interfaces = [ "eth0" ];
+
+    rules.web = {
+      from = [ "uplink" ];
+      to = [ "fw" ];
+      allowedTCPPorts = [ 80 443 ];
+    };
+  };
+}
+```
+
+Replace `eth0` with your network interface. The `nnf-common` snippet also enables
+baseline policies including SSH, loopback traffic, and connection tracking.
+See [Snippets](./snippets/) for the full set of defaults.
+
+## Explore the documentation
+
+<CardGrid>
+  <LinkCard
+    title="Quickstart guide"
+    description="Import the module and build your first zone-based firewall."
+    href="./quickstart/"
+  />
+  <LinkCard
+    title="Zones"
+    description="Match interfaces and subnets, and organize your network with inheritance."
+    href="./zones/"
+  />
+  <LinkCard
+    title="Rules"
+    description="Control traffic between zones with ports, verdicts, and custom nftables rules."
+    href="./rules/"
+  />
+  <LinkCard
+    title="Snippets"
+    description="Choose reusable policies and understand the defaults they enable."
+    href="./snippets/"
+  />
+  <LinkCard
+    title="Common options"
+    description="Configure the firewall, local zone, and stop ruleset."
+    href="./common/"
+  />
+  <LinkCard
+    title="Chains"
+    description="Work with the underlying nftables chains and dependencies."
+    href="./chains/"
+  />
+</CardGrid>
