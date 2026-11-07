@@ -31,7 +31,7 @@ const valueText = (value: OptionValue) => value.text;
           <td>
             <div class="option-path">
                   <code>{option.name}</code>
-                  <button type="button" data-copy-option={option.name} aria-label={`Copy option path ${option.name}`} title="Copy path">
+                  <button type="button" data-copy-option={option.name} aria-label="Copy option name" title="Copy option name">
                     <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
                       <rect x="8" y="8" width="12" height="12" rx="2" />
                       <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
@@ -96,7 +96,7 @@ const valueText = (value: OptionValue) => value.text;
     setTimeout(() => {
       label.textContent = '';
       delete button.dataset.copyState;
-      button.title = 'Copy path';
+      button.title = 'Copy option name';
     }, 2000);
   });
 </script>
