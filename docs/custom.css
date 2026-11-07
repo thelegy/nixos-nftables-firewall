@@ -5,10 +5,11 @@
   table-layout: fixed;
   margin-top: 1rem;
   border-collapse: collapse;
-  font-size: .9rem;
+  font-size: .875rem;
+  line-height: 1.5;
 }
 .option-metadata :is(th, td) {
-  padding: .7rem .8rem;
+  padding: .5rem;
   border-bottom: 1px solid var(--sl-color-gray-5);
   text-align: start;
   vertical-align: top;
@@ -46,5 +47,4 @@
 .option-sources a:hover { color: var(--sl-color-text-accent); }
 @media (max-width: 30rem) {
   .option-metadata .option-label-column { width: 6rem; }
-  .option-metadata :is(th, td) { padding: .6rem; }
 }
