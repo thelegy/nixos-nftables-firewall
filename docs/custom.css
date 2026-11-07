@@ -20,7 +20,6 @@
 .option-metadata th {
   color: var(--sl-color-gray-2);
   font-weight: 500;
-  background: var(--sl-color-gray-7, var(--sl-color-gray-6));
 }
 .option-metadata td > :first-child,
 .option-metadata td > div > :first-child { margin-top: 0; }
