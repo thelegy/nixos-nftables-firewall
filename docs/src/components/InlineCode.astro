@@ -1,0 +1,94 @@
+---
+import { Code } from 'astro:components';
+
+interface Props {
+  value: string;
+  label: string;
+  highlight?: boolean;
+}
+const { value, label, highlight = true } = Astro.props;
+---
+
+<span class="inline-code-value">
+  {highlight
+    ? <Code inline code={value} lang="nix" themes={{ light: 'github-light', dark: 'github-dark' }} defaultColor={false} tabindex="-1" class="nnf-inline-code" />
+    : <code>{value}</code>}
+  <button type="button" data-copy-inline={value} data-copy-label={label} aria-label={label} title={label}>
+    <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+      <rect x="8" y="8" width="12" height="12" rx="2" />
+      <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+    </svg>
+    <svg class="copied-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="m5 12 4 4L19 6" />
+    </svg>
+    <span class="sr-only" role="status"></span>
+  </button>
+</span>
+
+<script>
+  document.addEventListener('click', async (event) => {
+    const button = event.target instanceof Element
+      ? event.target.closest<HTMLButtonElement>('button[data-copy-inline]')
+      : null;
+    if (!button) return;
+    const label = button.querySelector('[role="status"]')!;
+    try {
+      await navigator.clipboard.writeText(button.dataset.copyInline!);
+      label.textContent = 'Copied!';
+      button.dataset.copyState = 'copied';
+      button.title = 'Copied!';
+    } catch {
+      label.textContent = 'Copy failed';
+      button.title = 'Copy failed';
+    }
+    setTimeout(() => {
+      label.textContent = '';
+      delete button.dataset.copyState;
+      button.title = button.dataset.copyLabel!;
+    }, 2000);
+  });
+</script>
+
+<style>
+  .inline-code-value {
+    margin: 0;
+    font-size: .8rem;
+    line-height: inherit;
+  }
+  .inline-code-value :global(code) {
+    font-size: .8rem;
+    overflow-wrap: anywhere;
+  }
+  .inline-code-value button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    vertical-align: -.25rem;
+    width: 1.5rem;
+    height: 1.25rem;
+    margin: 0 0 0 .2rem;
+    padding: 0;
+    border: 0;
+    border-radius: .35rem;
+    background: transparent;
+    color: var(--sl-color-text);
+    font: inherit;
+    font-size: .75rem;
+    cursor: pointer;
+  }
+  /* Expand the hit area without making the table's line box taller. */
+  .inline-code-value button::after {
+    content: '';
+    position: absolute;
+    inset: -.25rem 0;
+  }
+  .inline-code-value button:hover { background: var(--sl-color-gray-6); }
+  .copied-icon { display: none; }
+  [data-copy-state="copied"] .copy-icon { display: none; }
+  [data-copy-state="copied"] .copied-icon { display: block; }
+  button:focus-visible {
+    outline: 2px solid var(--sl-color-text-accent);
+    outline-offset: 3px;
+  }
+</style>
