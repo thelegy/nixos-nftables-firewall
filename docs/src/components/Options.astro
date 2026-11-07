@@ -1,4 +1,5 @@
 ---
+import { Code } from 'astro:components';
 import CodeBlock from './CodeBlock.astro';
 import { marked } from 'marked';
 import { getOptions, optionId, optionLabel } from '../lib/options';
@@ -59,7 +60,7 @@ const valueText = (value: OptionValue) => value.text;
               {value._type === 'literalMD'
                 ? <div set:html={markdown(valueText(value))} />
                 : !value.text.includes('\n') && value.text.length <= 80
-                  ? <code>{valueText(value)}</code>
+                  ? <Code inline code={valueText(value)} lang="nix" themes={{ light: 'github-light', dark: 'github-dark' }} defaultColor={false} tabindex="-1" class="nnf-inline-code" />
                   : <CodeBlock code={valueText(value)} />}
             </td>
           </tr>;
