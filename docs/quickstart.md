@@ -1,17 +1,19 @@
-# Quickstart guide
+---
+title: Quickstart guide
+---
 
 ## Installation of the module
 To use the firewall you first need to load the module.
 Currently only nix flakes are supported, though adding support for the traditional way should not be too difficult.
 
-```{note}
+:::note
 Currently almost all of what this module does needs to be enabled first, but there is one thing, the module will do by just including it:
 
-The module changes adds the [stopRuleset](common.md#networking-nftables-stopruleset) Option, that is required.
+The module changes adds the [stopRuleset](../common/#networking-nftables-stopruleset) Option, that is required.
 It will change the undelying `nftables` service, to apply this ruleset in case, that the service is stopped, or the real ruleset fails to apply.
 
 If you forget to define it, nix will complain, when you try to build your machine.
-```
+:::
 
 Loading the module might depend on how you construct your machines configuration, but probably something along the following lines will do the trick:
 ```
@@ -34,7 +36,7 @@ Loading the module might depend on how you construct your machines configuration
 ```
 
 ## Using the module
-We will start using [snippets](snippets).
+We will start using [snippets](../snippets/).
 Snippets are very opinionated and may change in unexpected ways, though they are great for starting.
 I encourage you to read through what the snippets do, you use and maybe even to copy them, so you are in control how they change.
 For now we will just use them.
@@ -51,7 +53,7 @@ We will look at the following `configuration.nix`.
 This will enable the firewall and also the `nnf-common` snippet.
 
 ### Zones
-Next we will add some [zones](zones):
+Next we will add some [zones](../zones/):
 ```
     zones.uplink = {
       interfaces = [ "eth0" "eth1" ];
@@ -89,7 +91,7 @@ With this example a `banned` zone is defined by manually specifying how traffic 
 In this case we assume, that some nftables sets `banlist` and `banlist6` are defined and the zone matches traffic with a cummunication partner, that has a banned ip.
 
 ### Rules
-Next we will add some [rules](rules):
+Next we will add some [rules](../rules/):
 ```
     rules.http = {
       from = "all";
@@ -98,10 +100,10 @@ Next we will add some [rules](rules):
     };
 ```
 The rule `http` allows TCP traffic to port 80 and 443 from anywhere to the local machine.
-(The `fw` stands for the local machine, it is short for "firewall", you can change it at the [localZoneName](common.md/#networking-nftables-firewall-localzonename) option).
+(The `fw` stands for the local machine, it is short for "firewall", you can change it at the [localZoneName](../common/#networking-nftables-firewall-localzonename) option).
 
 This has the same effect as `networking.firewall.allowedTCPPorts = [80 443];`.
-Depending on which snippets you have enabled ([nnf-nixos-firewall](snippets.md#nnf-nixos-firewall) is responsible, which is included by [nnf-common](snippets.md#nnf-common), which we have enabled), that will actually still work.
+Depending on which snippets you have enabled ([nnf-nixos-firewall](../snippets/#nnf-nixos-firewall) is responsible, which is included by [nnf-common](../snippets/#nnf-common), which we have enabled), that will actually still work.
 
 ```
     rules.mqtt = {
@@ -111,9 +113,9 @@ Depending on which snippets you have enabled ([nnf-nixos-firewall](snippets.md#n
     };
 ```
 The rule `mqtt` allows TCP traffic to port 1883 from the `local` zone to the local machine.
-Here [from](rules.md/#networking-nftables-firewall-rules-name-from) is defined as a list of zones insted of the `"all"` string earlier.
+Here [from](../rules/#networking-nftables-firewall-rules-name-from) is defined as a list of zones insted of the `"all"` string earlier.
 Usually it is a list of zone names, but instead it can be this special value, that we have seen previous.
-The same is actually possible for the [to](rules.md/#networking-nftables-firewall-rules-name-to).
+The same is actually possible for the [to](../rules/#networking-nftables-firewall-rules-name-to).
 
 ```
     zones.private = {
@@ -159,9 +161,9 @@ It also adds a counter, so we can inspect how much traffic and packets were actu
 As it is your first rule to drop traffic instead of allow it, we finally need to think about order of rules.
 For the most part we can ignore order, as traffic is matched from least specific to most specific and rules are usually applied on the way back from most specific to least specific.
 Bit in this example we have a pretty generic rule, that we want to apply very early, to ensure traffic is blocked prior to all the other rules accepting the traffic.
-For this there is the [ruleType](rules.md/#networking-nftables-firewall-rules-name-ruletype) option.
+For this there is the [ruleType](../rules/#networking-nftables-firewall-rules-name-ruletype) option.
 
-The actually verdict is not supplied as a `verdict = "drop"` here, but as [extraLines](rules.md/#networking-nftables-firewall-rules-name-extralines).
+The actually verdict is not supplied as a `verdict = "drop"` here, but as [extraLines](../rules/#networking-nftables-firewall-rules-name-extralines).
 With it you can supply raw nft rules, that are applied to all traffic the rule affects.
 
 ```

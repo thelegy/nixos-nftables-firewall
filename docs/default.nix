@@ -3,8 +3,8 @@
   nnf,
   path,
   pkgs,
-  python3,
-  runCommand,
+  buildNpmPackage,
+  importNpmLock,
   symlinkJoin,
   writeTextDir,
 }:
@@ -64,6 +64,8 @@ let
       fieldName = name: "<div class=\"fieldname\">${name}</div>\n";
       modulePath = path: head (strings.match "/nix/store/[^/]+/(.*)" path);
       renderOptionDoc = name: option: ''
+        <a id="${replaceStrings [ "." "<" ">" "*" ] [ "-" "" "" "" ] (toLower name)}"></a>
+
         ### ${escapeXML name}
 
         <div class="nixopt">
@@ -180,64 +182,41 @@ let
 
   owner = "thelegy";
   repo = "nixos-nftables-firewall";
-  desc = "A zone based firewall built ontop of nftables for nixos";
-
-  readme = runCommand "readme.md" { } ''
-    substitute ${../README.md} $out --replace "https://thelegy.github.io/nixos-nftables-firewall/" "/"
-  '';
-
-  indexRst = writeTextDir "index.rst" ''
-    .. include:: ../../../${readme}
-       :parser: myst_parser.sphinx_
-    .. rubric:: Table of contents
-    .. toctree::
-       :maxdepth: 3
-       :glob:
-
-       quickstart
-       *
-  '';
-
-  staticDir = runCommand "static" { } ''
-    mkdir -p $out/static
-    ln -s ${./custom.css} $out/static/custom.css
-  '';
-
-  docsSrc = symlinkJoin {
-    name = "docsSrc";
-    paths = [
-      sphinxConfig
-      indexRst
-      renderedDocs
-      staticDir
-    ];
+  index = writeTextDir "index.md" (
+    "---\ntitle: nixos-nftables-firewall\n---\n"
+    + concatStringsSep "\n" (tail (strings.splitString "\n" (fileContents ../README.md)))
+  );
+in
+buildNpmPackage {
+  pname = "${repo}-docs";
+  version = "1.0.0";
+  src = lib.cleanSourceWith {
+    src = ./.;
+    filter =
+      path: _:
+      !(builtins.elem (baseNameOf path) [
+        "node_modules"
+        "dist"
+        ".astro"
+      ]);
   };
 
-  sphinxConfig = writeTextDir "conf.py" ''
-    extensions = ['myst_parser']
-    highlight_language = 'nix'
-    project = '${repo}';
-    html_static_path = [ 'static' ];
-    html_theme_options = {
-      'code_font_family': 'monospace',
-      'code_font_size': '1em',
-      'description': '${desc}',
-      'font_family': 'sans-serif',
-      'font_size': '1em',
-      'github_banner': 'false',
-      'github_button': 'true',
-      'github_repo': '${repo}',
-      'github_user': '${owner}',
-      'page_width': 'min(90rem, calc(100vw - 4rem))',
-      'show_powered_by': 'false',
-    }
+  npmDeps = importNpmLock { npmRoot = ./.; };
+  npmConfigHook = importNpmLock.npmConfigHook;
+  npmFlags = [ "--ignore-scripts" ];
+
+  postPatch = ''
+    mkdir -p src/content/docs
+    cp -L ${renderedDocs}/*.md src/content/docs/
+    cp ${index}/index.md src/content/docs/index.md
   '';
 
-  sphinx = python3.withPackages (p: [
-    p.sphinx
-    p.myst-parser
-  ]);
-in
-runCommand "${repo}-docs" { } ''
-  ${sphinx}/bin/sphinx-build -b dirhtml ${docsSrc} $out
-''
+  env.ASTRO_TELEMETRY_DISABLED = "1";
+
+  installPhase = ''
+    runHook preInstall
+    mkdir -p $out
+    cp -r dist/. $out/
+    runHook postInstall
+  '';
+}

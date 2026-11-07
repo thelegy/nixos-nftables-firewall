@@ -1,0 +1,12 @@
+{
+  "name": "nixos-nftables-firewall-docs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "astro build" },
+  "dependencies": {
+    "@astrojs/starlight": "0.42.10",
+    "astro": "7.3.8",
+    "sharp": "0.35.5"
+  }
+}

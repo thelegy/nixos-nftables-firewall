@@ -1,4 +1,6 @@
-# Common options
+---
+title: Common options
+---
 
 ## Options
 
