@@ -5,9 +5,14 @@ title: Common options
 import Options from '../../components/Options.astro';
 
 
-## Options
+<span id="options"></span>
 
-<Options prefix="networking.nftables.firewall.enable" />
-<Options prefix="networking.nftables.firewall.localZoneName" />
+## Options in `networking.nftables.firewall`
+
+<Options prefix="networking.nftables.firewall.enable" replacePrefix="networking.nftables.firewall." />
+<Options prefix="networking.nftables.firewall.localZoneName" replacePrefix="networking.nftables.firewall." />
+
+## Other nftables options
+
 <Options prefix="networking.nftables.stopRuleset" />
 <Options prefix="networking.nftables.stopRulesetFile" />

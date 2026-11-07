@@ -5,8 +5,13 @@ import { marked } from 'marked';
 import { getOptions, optionId, optionLabel } from '../lib/options';
 import type { OptionValue } from '../lib/options';
 
-interface Props { prefix: string }
-const { prefix } = Astro.props;
+interface Props {
+  /** Select this option and its descendants. */
+  prefix: string;
+  /** Replace this exact leading string with "..."; omit for full names. */
+  replacePrefix?: string;
+}
+const { prefix, replacePrefix } = Astro.props;
 const options = (await getOptions()).filter(({ name }) => name === prefix || name.startsWith(prefix + '.'));
 if (!options.length) throw new Error(`No Nix options matched "${prefix}".`);
 const markdown = (text: string) => marked.parse(
@@ -19,7 +24,7 @@ const valueText = (value: OptionValue) => value.text;
 {options.map((option) => (
   <section class="nix-option">
     <div class="option-heading">
-      <h3 id={optionId(option.name)}>{optionLabel(option.name, prefix)}</h3>
+      <h3 id={optionId(option.name)}>{optionLabel(option.name, replacePrefix)}</h3>
       <a class="option-permalink" href={`#${optionId(option.name)}`} aria-label={`Permalink to ${option.name}`}>#</a>
     </div>
     <table class="option-metadata">
