@@ -1,5 +1,6 @@
 ---
 import InlineCode from './InlineCode.astro';
+import AnchorHeading from '@astrojs/starlight/components/AnchorHeading.astro';
 import CodeBlock from './CodeBlock.astro';
 import { marked } from 'marked';
 import { getOptions, optionId, optionLabel } from '../lib/options';
@@ -23,10 +24,7 @@ const valueText = (value: OptionValue) => value.text;
 
 {options.map((option) => (
   <section class="nix-option">
-    <div class="option-heading">
-      <h3 id={optionId(option.name)}>{optionLabel(option.name, replacePrefix)}</h3>
-      <a class="option-permalink" href={`#${optionId(option.name)}`} aria-label={`Permalink to ${option.name}`}>#</a>
-    </div>
+    <AnchorHeading level={3} id={optionId(option.name)}>{optionLabel(option.name, replacePrefix)}</AnchorHeading>
     <table class="option-metadata">
       <caption class="sr-only">Metadata for {option.name}</caption>
       <colgroup><col class="option-label-column" /><col /></colgroup>
@@ -84,23 +82,8 @@ const valueText = (value: OptionValue) => value.text;
     padding-top: 1.25rem;
     border-top: 1px solid var(--sl-color-gray-5);
   }
-  .option-heading {
-    display: flex;
-    align-items: baseline;
-    gap: .65rem;
-  }
-  .option-heading h3 {
+  .nix-option :global(h3) {
     margin: 0;
     overflow-wrap: anywhere;
-  }
-  .option-permalink {
-    color: var(--sl-color-gray-3);
-    text-decoration: none;
-    font-size: 1rem;
-  }
-  .option-permalink:hover { color: var(--sl-color-text-accent); }
-  .option-permalink:focus-visible {
-    outline: 2px solid var(--sl-color-text-accent);
-    outline-offset: 3px;
   }
 </style>
