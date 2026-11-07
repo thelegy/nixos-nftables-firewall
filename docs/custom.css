@@ -68,3 +68,9 @@
 .nnf-inline-code span { color: var(--shiki-light); }
 [data-theme="dark"] .nnf-inline-code,
 [data-theme="dark"] .nnf-inline-code span { color: var(--shiki-dark); }
+
+.sl-markdown-content h2 code {
+  font-size: .875rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}

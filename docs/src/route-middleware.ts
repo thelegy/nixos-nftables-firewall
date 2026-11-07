@@ -34,13 +34,20 @@ export const onRequest = defineRouteMiddleware(async (context) => {
       }
     }
     if (token.type !== 'html' && token.type !== 'paragraph') continue;
-    for (const match of token.raw.matchAll(/^<Options\s+prefix=["']([^"']+)["']\s*\/>/gm)) {
-      const prefix = match[1]!;
+    // Options props in reference pages are literal strings, in any order.
+    for (const match of token.raw.matchAll(/^<Options\s+([\s\S]*?)\/>/gm)) {
+      const attrs = new Map(
+        [...match[1]!.matchAll(/\b(prefix|replacePrefix)\s*=\s*["']([^"']*)["']/g)]
+          .map((attr) => [attr[1]!, attr[2]!] as const),
+      );
+      const prefix = attrs.get('prefix');
+      if (!prefix) throw new Error('Options navigation requires a literal prefix prop.');
+      const replacePrefix = attrs.get('replacePrefix');
       for (const option of options.filter(({ name }) => name === prefix || name.startsWith(prefix + '.'))) {
         const slug = optionId(option.name);
         if (seen.has(slug)) continue;
         seen.add(slug);
-        const heading = { depth: 3, slug, text: optionLabel(option.name, prefix) };
+        const heading = { depth: 3, slug, text: optionLabel(option.name, replacePrefix) };
         mergedHeadings.push(heading);
         if (route.toc.minHeadingLevel <= 3 && route.toc.maxHeadingLevel >= 3) {
           (parent?.children ?? route.toc.items).push({ ...heading, children: [] });

@@ -5,7 +5,12 @@ title: Chains
 import Options from '../../components/Options.astro';
 
 
-## Options
+<span id="options"></span>
 
-<Options prefix="networking.nftables.chains.<name>.<name>" />
+## Options in `networking.nftables.chains`
+
+<Options prefix="networking.nftables.chains.<name>.<name>" replacePrefix="networking.nftables.chains." />
+
+## Other nftables options
+
 <Options prefix="networking.nftables.requiredChains" />
