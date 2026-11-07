@@ -79,6 +79,11 @@ export const examples = [
 }`
 ];
 
+export const configurationStarts = examples.slice(1).map((_, index, fragments) =>
+  1 + fragments.slice(0, index).reduce((lines, fragment) => lines + fragment.split('\n').length, 0)
+);
+
+
 
 
 ## Installation of the module
@@ -104,12 +109,12 @@ I encourage you to read through what the snippets do, you use and maybe even to 
 For now we will just use them.
 
 We will look at the following `configuration.nix`.
-<CodeBlock lang="nix" code={examples[1]} />
+<CodeBlock lang="nix" title="configuration.nix" code={examples[1]} startLine={configurationStarts[0]} continuation="start" />
 This will enable the firewall and also the `nnf-common` snippet.
 
 ### Zones
 Next we will add some [zones](../zones/):
-<CodeBlock lang="nix" code={examples[2]} />
+<CodeBlock lang="nix" title="configuration.nix" code={examples[2]} startLine={configurationStarts[1]} continuation="middle" />
 This will define the two zones `uplink` and `local`.
 
 The `uplink` zone is defined by the interfaces `eth0` and `eth1`.
@@ -122,26 +127,26 @@ You can unserstand that as "my communication partner already belongs to the `upl
 
 This is often all the complxity you need, but you can also do things more manually to fit your needs:
 
-<CodeBlock lang="nix" code={examples[3]} />
+<CodeBlock lang="nix" title="configuration.nix" code={examples[3]} startLine={configurationStarts[2]} continuation="middle" />
 With this example a `banned` zone is defined by manually specifying how traffic should be matched.
 In this case we assume, that some nftables sets `banlist` and `banlist6` are defined and the zone matches traffic with a cummunication partner, that has a banned ip.
 
 ### Rules
 Next we will add some [rules](../rules/):
-<CodeBlock lang="nix" code={examples[4]} />
+<CodeBlock lang="nix" title="configuration.nix" code={examples[4]} startLine={configurationStarts[3]} continuation="middle" />
 The rule `http` allows TCP traffic to port 80 and 443 from anywhere to the local machine.
 (The `fw` stands for the local machine, it is short for "firewall", you can change it at the [localZoneName](../common/#networking-nftables-firewall-localzonename) option).
 
 This has the same effect as `networking.firewall.allowedTCPPorts = [80 443];`.
 Depending on which snippets you have enabled ([nnf-nixos-firewall](../snippets/#nnf-nixos-firewall) is responsible, which is included by [nnf-common](../snippets/#nnf-common), which we have enabled), that will actually still work.
 
-<CodeBlock lang="nix" code={examples[5]} />
+<CodeBlock lang="nix" title="configuration.nix" code={examples[5]} startLine={configurationStarts[4]} continuation="middle" />
 The rule `mqtt` allows TCP traffic to port 1883 from the `local` zone to the local machine.
 Here [from](../rules/#networking-nftables-firewall-rules-name-from) is defined as a list of zones insted of the `"all"` string earlier.
 Usually it is a list of zone names, but instead it can be this special value, that we have seen previous.
 The same is actually possible for the [to](../rules/#networking-nftables-firewall-rules-name-to).
 
-<CodeBlock lang="nix" code={examples[6]} />
+<CodeBlock lang="nix" title="configuration.nix" code={examples[6]} startLine={configurationStarts[5]} continuation="middle" />
 Now we define another zone `private` via the interface `eth3`.
 The rule `private-ssh` allows traffic from anywhere to reach TCP port 22 in zone `private`.
 So this will actually generate our first "forward" rule.
@@ -154,7 +159,7 @@ This can be achieved by including multiple zones in the `to` field, some being s
 
 Currently this firewall does not generate nft rules for the "output" chain, so limiting outgoing traffic from the local mache is not possible yet.
 
-<CodeBlock lang="nix" code={examples[7]} />
+<CodeBlock lang="nix" title="configuration.nix" code={examples[7]} startLine={configurationStarts[6]} continuation="middle" />
 The rule `ban` is a more advanced example.
 It drops any draffic, that is originated in the `banned` zone.
 It also adds a counter, so we can inspect how much traffic and packets were actually dropped by it.
@@ -167,4 +172,4 @@ For this there is the [ruleType](../rules/#networking-nftables-firewall-rules-na
 The actually verdict is not supplied as a `verdict = "drop"` here, but as [extraLines](../rules/#networking-nftables-firewall-rules-name-extralines).
 With it you can supply raw nft rules, that are applied to all traffic the rule affects.
 
-<CodeBlock lang="nix" code={examples[8]} />
+<CodeBlock lang="nix" title="configuration.nix" code={examples[8]} startLine={configurationStarts[7]} continuation="end" />
