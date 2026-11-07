@@ -5,14 +5,20 @@
  * Copyright (c) 2023 shadcn — MIT; see public/licenses/shadcn-ui.txt.
  */
 import { Code } from 'astro:components';
+import type { CodeLanguage } from 'astro';
 
-interface Props { code: string }
-const { code } = Astro.props;
+interface Props {
+  code: string;
+  lang?: CodeLanguage;
+  title?: string;
+}
+const { code, lang = 'nix', title } = Astro.props;
+const languageLabel = lang === 'nix' ? 'Nix' : lang;
 ---
 
 <div class="nnf-code-block not-content" data-slot="code-block" data-wrap="true">
   <div class="code-header" data-slot="code-block-header">
-    <span>Nix</span>
+    <span>{title ?? languageLabel}</span>
     <div class="code-actions" data-slot="code-block-actions">
       <button type="button" data-code-wrap aria-label="Wrap lines" aria-pressed="true" title="Toggle line wrapping">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
@@ -30,9 +36,9 @@ const { code } = Astro.props;
       </button>
     </div>
   </div>
-  <Code code={code} lang="nix" themes={{ light: 'github-light', dark: 'github-dark' }} defaultColor={false} transformers={[{
+  <Code code={code} lang={lang} themes={{ light: 'github-light', dark: 'github-dark' }} defaultColor={false} transformers={[{
     line(node, line) { node.properties['data-line'] = line; },
-  }]} wrap={null} tabindex="0" aria-label="Nix code" />
+  }]} wrap={null} tabindex="0" aria-label={`${languageLabel} code`} />
   <span class="sr-only" role="status"></span>
 </div>
 
