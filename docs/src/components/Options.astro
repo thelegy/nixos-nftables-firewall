@@ -56,7 +56,13 @@ const valueText = (value: OptionValue) => value.text;
         <tr>
           <th scope="row">Declared in</th>
           <td><ul class="option-sources">{option.declarations.map((path) => (
-            <li><a href={`https://github.com/thelegy/nixos-nftables-firewall/blob/main/${path}`}>{path}</a></li>
+            <li><a href={`https://github.com/thelegy/nixos-nftables-firewall/blob/main/${path}`}>
+              {path}
+              <svg class="source-link-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                <path d="M15 3h6v6m0-6L10 14M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4" />
+              </svg>
+              <span class="sr-only"> (external link)</span>
+            </a></li>
           ))}</ul></td>
         </tr>
       </tbody>
