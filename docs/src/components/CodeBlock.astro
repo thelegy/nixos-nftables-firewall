@@ -11,12 +11,14 @@ interface Props {
   code: string;
   lang?: CodeLanguage;
   title?: string;
+  startLine?: number;
+  continuation?: 'start' | 'middle' | 'end';
 }
-const { code, lang = 'nix', title } = Astro.props;
+const { code, lang = 'nix', title, startLine = 1, continuation } = Astro.props;
 const languageLabel = lang === 'nix' ? 'Nix' : lang;
 ---
 
-<div class="nnf-code-block not-content" data-slot="code-block" data-wrap="true">
+<div class="nnf-code-block not-content" data-slot="code-block" data-wrap="true" data-continuation={continuation} data-start-line={startLine}>
   <div class="code-header" data-slot="code-block-header">
     <span>{title ?? languageLabel}</span>
     <div class="code-actions" data-slot="code-block-actions">
@@ -37,7 +39,7 @@ const languageLabel = lang === 'nix' ? 'Nix' : lang;
     </div>
   </div>
   <Code code={code} lang={lang} themes={{ light: 'github-light', dark: 'github-dark' }} defaultColor={false} transformers={[{
-    line(node, line) { node.properties['data-line'] = line; },
+    line(node, line) { node.properties['data-line'] = startLine + line - 1; },
   }]} wrap={null} tabindex="0" aria-label={`${languageLabel} code`} />
   <span class="sr-only" role="status"></span>
 </div>
@@ -82,6 +84,14 @@ const languageLabel = lang === 'nix' ? 'Nix' : lang;
     border-radius: .5rem;
     background: var(--sl-color-bg-inline-code);
     font-size: .8rem;
+  }
+  .nnf-code-block:is([data-continuation="start"], [data-continuation="middle"]) {
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+  }
+  .nnf-code-block:is([data-continuation="middle"], [data-continuation="end"]) {
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
   }
   .code-header {
     display: flex;
