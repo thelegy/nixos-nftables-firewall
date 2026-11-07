@@ -49,3 +49,18 @@
 @media (max-width: 30rem) {
   .option-metadata .option-label-column { width: 6rem; }
 }
+
+
+/* Inline code shares the muted block surface, with a small rounded edge. */
+.sl-markdown-content :not(pre) > code {
+  border-radius: .25rem;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.sl-markdown-content code.nnf-inline-code {
+  background: var(--sl-color-bg-inline-code);
+}
+.nnf-inline-code,
+.nnf-inline-code span { color: var(--shiki-light); }
+[data-theme="dark"] .nnf-inline-code,
+[data-theme="dark"] .nnf-inline-code span { color: var(--shiki-dark); }
