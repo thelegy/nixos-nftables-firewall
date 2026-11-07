@@ -23,8 +23,15 @@ const valueText = (value: OptionValue) => value.text;
     </div>
     <div class="option-path">
       <code>{option.name}</code>
-      <button type="button" data-copy-option={option.name} aria-label={`Copy option path ${option.name}`}>
-        <span aria-live="polite">Copy path</span>
+      <button type="button" data-copy-option={option.name} aria-label={`Copy option path ${option.name}`} title="Copy path">
+        <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <rect x="8" y="8" width="12" height="12" rx="2" />
+          <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+        </svg>
+        <svg class="copied-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="m5 12 4 4L19 6" />
+        </svg>
+        <span class="sr-only" role="status"></span>
       </button>
     </div>
     <table class="option-metadata">
@@ -70,14 +77,21 @@ const valueText = (value: OptionValue) => value.text;
       ? event.target.closest<HTMLButtonElement>('button[data-copy-option]')
       : null;
     if (!button) return;
-    const label = button.querySelector('span')!;
+    const label = button.querySelector('[role="status"]')!;
     try {
       await navigator.clipboard.writeText(button.dataset.copyOption!);
       label.textContent = 'Copied!';
+      button.dataset.copyState = 'copied';
+      button.title = 'Copied!';
     } catch {
       label.textContent = 'Copy failed';
+      button.title = 'Copy failed';
     }
-    setTimeout(() => { label.textContent = 'Copy path'; }, 2000);
+    setTimeout(() => {
+      label.textContent = '';
+      delete button.dataset.copyState;
+      button.title = 'Copy path';
+    }, 2000);
   });
 </script>
 
@@ -103,14 +117,11 @@ const valueText = (value: OptionValue) => value.text;
   }
   .option-permalink:hover { color: var(--sl-color-text-accent); }
   .option-path {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: .5rem 1rem;
     margin-top: .4rem;
+    font-size: .8rem;
+    line-height: 1.8;
   }
   .option-path code {
-    flex: 1 1 16rem;
     padding: 0;
     color: var(--sl-color-gray-2);
     background: none;
@@ -118,17 +129,26 @@ const valueText = (value: OptionValue) => value.text;
     overflow-wrap: anywhere;
   }
   .option-path button {
-    margin: 0;
-    padding: .3rem .55rem;
-    border: 1px solid var(--sl-color-gray-4);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    width: 2rem;
+    height: 2rem;
+    margin: 0 0 0 .2rem;
+    padding: .5rem;
+    border: 0;
     border-radius: .35rem;
-    background: var(--sl-color-bg);
+    background: transparent;
     color: var(--sl-color-text);
     font: inherit;
     font-size: .75rem;
     cursor: pointer;
   }
   .option-path button:hover { background: var(--sl-color-gray-6); }
+  .copied-icon { display: none; }
+  [data-copy-state="copied"] .copy-icon { display: none; }
+  [data-copy-state="copied"] .copied-icon { display: block; }
   :is(.option-path button, .option-permalink):focus-visible {
     outline: 2px solid var(--sl-color-text-accent);
     outline-offset: 3px;
