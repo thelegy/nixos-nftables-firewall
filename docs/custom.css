@@ -15,6 +15,7 @@
   vertical-align: top;
   overflow-wrap: anywhere;
 }
+.option-metadata tbody > tr:last-child > :is(th, td) { border-bottom: 0; }
 .option-metadata .option-label-column { width: 7.5rem; }
 .option-metadata th {
   color: var(--sl-color-gray-2);
