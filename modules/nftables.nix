@@ -63,6 +63,19 @@ in
         when the unit is stopped.
       '';
     };
+
+    networking.nftables.ruleDeletionSnippet = mkOption {
+      type = types.str;
+      default = "flush ruleset";
+      example = "destroy table inet firewall";
+      description = ''
+        Text inserted before new firewall rules are loaded. By default, this will
+        drop the entire firewall ruleset. If software that manages its own firewall
+        rules runs on the machine (e.g. tailscaled or podman/docker), it can be
+        desireable to explicitly list the table(s) that should be deleted instead.
+      '';
+    };
+
     networking.nftables.stopRulesetFile = mkOption {
       type = types.path;
       default = pkgs.writeTextFile {
@@ -95,10 +108,10 @@ in
             else
               cfg.rulesetFile;
           rulesScript =
-            rulesetFile: name:
+            rulesetFile: name: deletionSnippet:
             pkgs.writeScript "nftables-${name}rules" ''
               #! ${pkgs.nftables}/bin/nft -f
-              flush ruleset
+              ${deletionSnippet}
               include "${rulesetFile}"
             '';
           # This sadly does not work, b/c nft has an open world assumption wich makes --check
@@ -107,8 +120,8 @@ in
           #  src = rulesScript rulesetFile name;
           #  preferLocalBuild = true;
           #} "${pkgs.nftables}/bin/nft -f $src -c && cp $src $out";
-          startScript = rulesScript rulesetFile "";
-          stopScript = rulesScript cfg.stopRulesetFile "stop";
+          startScript = rulesScript rulesetFile "" cfg.ruleDeletionSnippet;
+          stopScript = rulesScript cfg.stopRulesetFile "stop" "flush ruleset";
         in
         {
           Type = "oneshot";
